@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+        <variable
+            name="note"
+            type="com.botty.secretnotes.storage.new_db.note.Note" />
+    </data>
+
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:layout_marginTop="@dimen/activity_vertical_margin"
+            android:layout_marginLeft="@dimen/activity_horizontal_margin"
+            android:layout_marginRight="@dimen/activity_horizontal_margin"
+            android:layout_marginBottom="45dp"
+            android:focusableInTouchMode="true"
+            android:focusable="true"
+            tools:context=".NoteActivity">
+
+            <com.google.android.gms.ads.AdView
+                xmlns:ads="http://schemas.android.com/apk/res-auto"
+                android:id="@+id/adView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                ads:adSize="BANNER"
+                ads:adUnitId="ca-app-pub-9694877750002081/5548581638" />
+
+            <!-- release ca-app-pub-9694877750002081/5548581638
+
+            test ca-app-pub-3940256099942544/6300978111 -->
+
+            <EditText
+                android:id="@+id/editTextTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:lines="1"
+                android:text="@={note.title}"
+                android:inputType="textCapSentences"
+                android:textStyle="bold"
+                android:hint="@string/title"
+                android:textColorHint="@android:color/darker_gray"
+                android:textColor="@android:color/black"
+                android:layout_marginTop="10dp"
+                android:textSize="22sp"
+                android:background="@null"
+                android:importantForAutofill="no"
+                tools:targetApi="o" />
+
+            <EditText
+                android:id="@+id/editTextContent"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginTop="15dp"
+                android:gravity="top"
+                android:textColorHint="@android:color/darker_gray"
+                android:inputType="textCapSentences|textMultiLine"
+                android:text="@={note.content}"
+                android:hint="@string/content"
+                android:textSize="16sp"
+                android:background="@null"
+                android:importantForAutofill="no"
+                tools:targetApi="o" />
+
+            <Button
+                android:id="@+id/buttonSave"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginBottom="15dp"
+                android:text="@string/save"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/bottomSheetCategories"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:behavior_peekHeight="45dp"
+            app:behavior_hideable="false"
+            app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
+
+            <include layout="@layout/bottom_sheet_main_title" />
+            <include layout="@layout/bottom_sheet_main_content" />
+
+        </LinearLayout>
+
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+</layout>
