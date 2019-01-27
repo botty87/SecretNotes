@@ -33,7 +33,7 @@ import org.jetbrains.anko.dip
 
 //Used in main and in note activities. Is useful for the category shared functions
 @ExperimentalCoroutinesApi
-abstract class WithBottomSheetCategoriesActivity: OnPauseTrackActivity(), CoroutineScope by MainScope() {
+abstract class BottomSheetCategoriesActivity: OnPauseTrackActivity(), CoroutineScope by MainScope() {
 
     var onBackPressedPlus: (() -> Unit)? = null
 
@@ -41,7 +41,7 @@ abstract class WithBottomSheetCategoriesActivity: OnPauseTrackActivity(), Corout
 
     protected val categoryAdapter by lazy {
         CategoryAdapter(this).apply {
-            onItemClick = this@WithBottomSheetCategoriesActivity::onCategoryClicked
+            onItemClick = this@BottomSheetCategoriesActivity::onCategoryClicked
         }
     }
 
@@ -118,7 +118,7 @@ abstract class WithBottomSheetCategoriesActivity: OnPauseTrackActivity(), Corout
         fun loadCategories() {
             recyclerViewCategories.run {
                 //setHasFixedSize(false)
-                layoutManager = FlexboxLayoutManager(this@WithBottomSheetCategoriesActivity)
+                layoutManager = FlexboxLayoutManager(this@BottomSheetCategoriesActivity)
                         .apply {
                             flexDirection = FlexDirection.ROW
                             justifyContent = JustifyContent.SPACE_AROUND

@@ -18,7 +18,7 @@ import com.botty.secretnotes.settings.SettingsContainer
 import com.botty.secretnotes.storage.new_db.category.Category
 import com.botty.secretnotes.storage.new_db.note.Note
 import com.botty.secretnotes.storage.storage_extensions.saveNote
-import com.botty.secretnotes.utilities.activites.WithBottomSheetCategoriesActivity
+import com.botty.secretnotes.utilities.activites.BottomSheetCategoriesActivity
 import com.botty.secretnotes.utilities.getDialog
 import com.botty.secretnotes.utilities.loadAd
 import com.botty.secretnotes.utilities.security.Security
@@ -31,7 +31,7 @@ import kotlinx.android.synthetic.main.bottom_sheet_main_title.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 @ExperimentalCoroutinesApi
-class NoteActivity : WithBottomSheetCategoriesActivity() {
+class NoteActivity : BottomSheetCategoriesActivity() {
     private lateinit var noteBinding: ActivityNoteBinding
 
     private var password: String? = null

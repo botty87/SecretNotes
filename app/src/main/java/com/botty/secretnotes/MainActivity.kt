@@ -28,7 +28,7 @@ import com.botty.secretnotes.storage.new_db.note.NoteViewModel
 import com.botty.secretnotes.storage.storage_extensions.*
 import com.botty.secretnotes.user_account.LoginActivity
 import com.botty.secretnotes.utilities.*
-import com.botty.secretnotes.utilities.activites.WithBottomSheetCategoriesActivity
+import com.botty.secretnotes.utilities.activites.BottomSheetCategoriesActivity
 import com.botty.secretnotes.utilities.security.Security
 import com.botty.secretnotes.utilities.security.askMasterPassword
 import com.danimahardhika.cafebar.CafeBar
@@ -50,7 +50,7 @@ import org.jetbrains.anko.startActivityForResult
 
 
 @ExperimentalCoroutinesApi
-class MainActivity : WithBottomSheetCategoriesActivity() {
+class MainActivity : BottomSheetCategoriesActivity() {
 
     private val noteAdapter by lazy {
         NoteAdapter(this).apply {

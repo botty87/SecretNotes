@@ -8,7 +8,7 @@ import com.botty.secretnotes.storage.new_db.category.CategoryLiveData
 import com.botty.secretnotes.storage.new_db.category.Category_
 import com.botty.secretnotes.storage.new_db.note.Note
 import com.botty.secretnotes.utilities.*
-import com.botty.secretnotes.utilities.activites.WithBottomSheetCategoriesActivity
+import com.botty.secretnotes.utilities.activites.BottomSheetCategoriesActivity
 import com.tingyik90.snackprogressbar.SnackProgressBar
 import com.tingyik90.snackprogressbar.SnackProgressBarManager
 import es.dmoral.toasty.Toasty
@@ -19,7 +19,7 @@ import kotlinx.coroutines.*
 import java.lang.Exception
 
 @ExperimentalCoroutinesApi
-fun WithBottomSheetCategoriesActivity.saveCategory(category: Category): Category? {
+fun BottomSheetCategoriesActivity.saveCategory(category: Category): Category? {
     category.name = category.name.toUpperCase()
     return if(userHasAccount()) {
         val categoryDoc = if(category.firestoreId.isNullOrBlank()) {
@@ -44,7 +44,7 @@ fun WithBottomSheetCategoriesActivity.saveCategory(category: Category): Category
 }
 
 @ExperimentalCoroutinesApi
-fun WithBottomSheetCategoriesActivity.getCategories(categoryViewModel: CategoryViewModel) {
+fun BottomSheetCategoriesActivity.getCategories(categoryViewModel: CategoryViewModel) {
     categoryViewModel.categoryLiveData?.clearAll(this)
 
     if(userHasAccount()) {
@@ -65,8 +65,8 @@ fun WithBottomSheetCategoriesActivity.getCategories(categoryViewModel: CategoryV
 }
 
 @ExperimentalCoroutinesApi
-fun WithBottomSheetCategoriesActivity.deleteCategory(category: Category, keepNotes: Boolean,
-                                                     onCategoryDeleted: (() -> Unit)) {
+fun BottomSheetCategoriesActivity.deleteCategory(category: Category, keepNotes: Boolean,
+                                                 onCategoryDeleted: (() -> Unit)) {
     if(userHasAccount()) {
         category.firestoreId?.let {categoryId ->
 
