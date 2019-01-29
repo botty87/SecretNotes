@@ -16,11 +16,13 @@ abstract class OnPauseTrackActivity: AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        if(passwordAsked) {
-            finishAffinity()
-        }
-        else {
-            getMyApplication().appStartPause = LocalDateTime.now()
+        if(getAppPreferences().getBoolean(Security.AUTO_LOCK_KEY, false)) {
+            if(passwordAsked) {
+                finishAffinity()
+            }
+            else {
+                getMyApplication().appStartPause = LocalDateTime.now()
+            }
         }
     }
 

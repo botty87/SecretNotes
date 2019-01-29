@@ -5,6 +5,8 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.text.InputType
+import android.text.Spannable
+import android.text.util.Linkify
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -18,17 +20,18 @@ import com.botty.secretnotes.settings.SettingsContainer
 import com.botty.secretnotes.storage.new_db.category.Category
 import com.botty.secretnotes.storage.new_db.note.Note
 import com.botty.secretnotes.storage.storage_extensions.saveNote
+import com.botty.secretnotes.utilities.*
 import com.botty.secretnotes.utilities.activites.BottomSheetCategoriesActivity
-import com.botty.secretnotes.utilities.getDialog
-import com.botty.secretnotes.utilities.loadAd
 import com.botty.secretnotes.utilities.security.Security
-import com.botty.secretnotes.utilities.toastSuccess
-import com.botty.secretnotes.utilities.userHasAccount
+import com.danimahardhika.cafebar.CafeBar
+import com.danimahardhika.cafebar.CafeBarCallback
 import es.dmoral.toasty.Toasty
 import kotlinx.android.synthetic.main.activity_note.*
 import kotlinx.android.synthetic.main.bottom_sheet_main_content.*
 import kotlinx.android.synthetic.main.bottom_sheet_main_title.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import org.jetbrains.anko.browse
+import org.jetbrains.anko.email
 
 @ExperimentalCoroutinesApi
 class NoteActivity : BottomSheetCategoriesActivity() {
@@ -71,6 +74,33 @@ class NoteActivity : BottomSheetCategoriesActivity() {
         }
 
         onBackPressedPlus = this::onBackPressedPlus
+
+        setLinksContentActions()
+    }
+
+    private fun setLinksContentActions() {
+        editTextContent.afterTextChanged {
+            Linkify.addLinks(it as Spannable, Linkify.ALL)
+        }
+
+        editTextContent.onLinkClicked {url, urlType ->
+            val textRes = when(urlType) {
+                UrlType.WEB -> R.string.snackbar_link_click
+                UrlType.EMAIL -> R.string.snackbar_email_click
+                else -> R.string.snackbar_phone_click
+            }
+
+            showCafeBar(textRes, noteCoordLayout, duration = CafeBar.Duration.MEDIUM,
+                    action = R.string.open to CafeBarCallback {cafeBar ->
+                        when (urlType) {
+                            UrlType.WEB -> browse(url)
+                            UrlType.EMAIL ->
+                                url.removePrefix("mailto:").run { email(this) }
+                            else -> openDialer(url)
+                        }
+                        cafeBar.dismiss()
+                    })
+        }
     }
 
     override fun onNewIntent(intent: Intent?) {

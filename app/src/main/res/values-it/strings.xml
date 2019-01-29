@@ -65,14 +65,14 @@
     <string name="close">Chiudi</string>
     <string name="forget_to_save_note">Hai scordato di salvare la nota?</string>
     <string name="recover">recupera</string>
-    <string name="deleting_category">Eliminando la categoria...</string>
+    <string name="deleting_category">Eliminando la categoria…</string>
     <string name="error_while_deleting_category">Errore nell\'eliminare la categoria. Riprova!</string>
     <string name="logout">Disconetti</string>
     <string name="logout_message">Sei sicuro di disconnetterti dal tuo profilo utente? Dovresti avere una connessione internet attiva prima di procedere!</string>
     <string name="notes_download">Download note</string>
     <string name="notes_download_message">Le tue note verranno scaricate e salvate localmente. Vuoi che le tue note online vengano conservate o eliminate?</string>
     <string name="erase">Elimina</string>
-    <string name="waiting_notes_migrate">Attendi mentre migro le note...</string>
+    <string name="waiting_notes_migrate">Attendi mentre migro le note…</string>
     <string name="notes_conflict">Conflitto note</string>
     <string name="notes_conflict_message">Il tuo account ha già un database. Vuoi usare il database locale e sovrascrivere quello remoto o viceversa?</string>
     <string name="maintain">Usa database locale</string>
@@ -117,4 +117,9 @@
     <string name="welcome_title">Benvenuto!</string>
     <string name="lets_go">Continua!</string>
     <string name="welcome_message">Crea il tuo profilo, utile per tenere le note sincronizzate tra i tuoi dispositivi. Inoltre, in questo modo, avrai sempre una copia delle tue note, utile per la configurazione su un nuovo dispositivo. Potrai anche impostare una “password generale”, utile per bloccare l’intera app! Pronto?</string>
+    <string name="snackbar_link_click">Sembra che tu abbia cliccato un link!</string>
+    <string name="snackbar_email_click">Sembra che tu abbia cliccato un indirizzo email!</string>
+    <string name="snackbar_phone_click">Sembra che tu abbia cliccato un numero di telefono!</string>
+    <string name="first_snackbark_advice">Se non hai bisogno delle informazioni nella snackbar puoi farla scorrer via verso destra, senza aspettare!</string>
+    <string name="set_master_password_before">Prima imposta una password generale!</string>
 </resources>

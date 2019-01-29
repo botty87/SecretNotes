@@ -2,12 +2,15 @@ package com.botty.secretnotes.utilities
 
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import android.content.res.ColorStateList
+import android.net.Uri
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 import com.afollestad.materialdialogs.MaterialDialog
 import com.botty.secretnotes.BuildConfig
 import com.botty.secretnotes.MyApplication
@@ -25,6 +28,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 import kotlin.random.Random
+
 
 fun logException(e: Exception) {
     if(!BuildConfig.DEBUG) {
@@ -100,6 +104,14 @@ fun Context.toastError(message: String) {
 fun Activity.showCafeBar(contentRes: Int, coordLayout: CoordinatorLayout? = null, duration: Int? = null,
                          action: Pair<Int, CafeBarCallback>? = null ){
 
+    if(getAppPreferences().getBoolean(Constants.FIRST_SNACKBAR_KEY, true)) {
+        Toasty.info(this, R.string.first_snackbark_advice, Toast.LENGTH_LONG).show()
+
+        getAppPreferences().edit {
+            putBoolean(Constants.FIRST_SNACKBAR_KEY, false)
+        }
+    }
+
     val builder = CafeBar.builder(this)
             .swipeToDismiss(true)
             .autoDismiss(true)
@@ -124,6 +136,13 @@ fun Activity.showCafeBar(contentRes: Int, coordLayout: CoordinatorLayout? = null
 
 fun Activity.getMyApplication(): MyApplication {
     return (application as MyApplication)
+}
+
+fun Activity.openDialer(phone: String) {
+    val intent = Intent(Intent.ACTION_DIAL).apply {
+        data = Uri.parse(phone)
+    }
+    startActivity(intent)
 }
 
 suspend fun <T> Task<T>.await(): T = suspendCoroutine { continuation ->

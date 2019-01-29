@@ -187,7 +187,7 @@ class MainActivity : BottomSheetCategoriesActivity() {
                 return false
             }
             else {
-                return if(preferences.contains(Security.MASTER_PAS_KEY)) {
+                return if(!preferences.contains(Security.MASTER_PAS_KEY)) {
                     askMasterPassword({ getNotesAndCategories() }, { finish() })
                     false
                 } else {
@@ -352,7 +352,7 @@ class MainActivity : BottomSheetCategoriesActivity() {
                             return
                         }
                         val catName = getStringExtra(Category.NAME_KEY)
-                        showCafeBar(R.string.forget_to_save_note, mainCoordLayout,
+                        showCafeBar(R.string.forget_to_save_note, mainCoordLayout, duration = CafeBar.Duration.LONG,
                                 action = R.string.recover to CafeBarCallback {
                                     startNoteActivity(note, categoryName = catName)
                                     it.dismiss()

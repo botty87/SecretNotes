@@ -17,6 +17,8 @@ object Constants {
     const val USER_ACCOUNT_TO_SET_KEY = "user_account_to_set"
     const val USER_DELETED_KEY = "user_deleted"
 
+    const val FIRST_SNACKBAR_KEY = "first_snackbar"
+
     val LOGIN_PROVIDERS by lazy {
         arrayListOf(
                 AuthUI.IdpConfig.EmailBuilder().setRequireName(false).build(),

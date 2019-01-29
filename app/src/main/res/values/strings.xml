@@ -122,4 +122,9 @@
     <string name="lets_go">Let\'s go!</string>
     <string name="remove">Remove</string>
     <string name="desc_order"><![CDATA[Z -> A\nNEWER -> OLDER]]></string>
+    <string name="snackbar_link_click">It seems that you clicked a link!</string>
+    <string name="snackbar_email_click">It seems that you clicked an email address!</string>
+    <string name="snackbar_phone_click">It seems that you clicked a phone number!</string>
+    <string name="first_snackbark_advice">If you don\'t need the snackbar info you can swipe out it on the right, without waiting!</string>
+    <string name="set_master_password_before">Set a master password before!</string>
 </resources>

@@ -43,12 +43,16 @@ class SettingsActivity : OnPauseTrackActivity(), CoroutineScope by MainScope() {
         settingsBinding = DataBindingUtil.setContentView(this, R.layout.activity_settings)
         settingsBinding.settings = SettingsContainer.getSettingsContainer(this)
 
-        getAppPreferences().getBoolean(Security.AUTO_LOCK_KEY, true).run {
-            settingsBinding.autoLock = this
-        }
-
         setBackground(imageViewBackground, R.drawable.settings_background)
 
+        //If we have an user account set the view stub
+        setUserAccountStub()
+        setSaveButton()
+        setAutoLock()
+        setButtonMasterPassword()
+    }
+
+    private fun setSaveButton() {
         buttonSave.setOnClickListener {
             settingsBinding.settings?.storeSettings(this)
             settingsBinding.autoLock?.let {autoLock ->
@@ -62,11 +66,38 @@ class SettingsActivity : OnPauseTrackActivity(), CoroutineScope by MainScope() {
             })
             finish()
         }
+    }
 
-        //If we have an user account set the view stub
-        setUserAccountStub()
+    private fun setAutoLock() {
+        getAppPreferences().getBoolean(Security.AUTO_LOCK_KEY, false).run {
+            if(getAppPreferences().contains(Security.MASTER_PAS_KEY)) {
+                settingsBinding.autoLock = this
+            }
+            else {
+                settingsBinding.autoLock = false
+            }
+            if(settingsBinding.autoLock!!) {
+                checkboxAutoLock.text = getString(R.string.autolock)
+            }
+            else {
+                checkboxAutoLock.text = getString(R.string.no_autolock)
+            }
+        }
 
-        setButtonMasterPassword()
+        checkboxAutoLock.setOnCheckedChangeListener { buttonView, isChecked ->
+            if(isChecked) {
+                if(getAppPreferences().contains(Security.MASTER_PAS_KEY)) {
+                    checkboxAutoLock.text = getString(R.string.autolock)
+                }
+                else {
+                    buttonView.isChecked = false
+                    toastError(getString(R.string.set_master_password_before))
+                }
+            }
+            else {
+                checkboxAutoLock.text = getString(R.string.no_autolock)
+            }
+        }
     }
 
     private fun setButtonMasterPassword() {
@@ -75,7 +106,9 @@ class SettingsActivity : OnPauseTrackActivity(), CoroutineScope by MainScope() {
             askMasterPassword({
                 getAppPreferences().edit {
                     remove(Security.MASTER_PAS_KEY)
+                    putBoolean(Security.AUTO_LOCK_KEY, false)
                 }
+                checkboxAutoLock.isChecked = false
                 toastSuccess(R.string.master_password_removed)
                 setButtonMasterPassword()
             })
