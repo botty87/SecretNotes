@@ -122,4 +122,20 @@
     <string name="snackbar_phone_click">Sembra che tu abbia cliccato un numero di telefono!</string>
     <string name="first_snackbark_advice">Se non hai bisogno delle informazioni nella snackbar puoi farla scorrer via verso destra, senza aspettare!</string>
     <string name="set_master_password_before">Prima imposta una password generale!</string>
+    <string name="text">Testo</string>
+    <string name="position">Posizione</string>
+    <string name="user_position_title">Posizione utente</string>
+    <string name="user_position_message">Ho bisogno del permesso di ricevere la tua posizione, per localizzarti sulla mappa. Acconsenti?</string>
+    <string name="allow">Acconsento</string>
+    <string name="deny">Nego</string>
+    <string name="no_location_permission">Non posso ricevere la tua posizione: permesso negato!</string>
+    <string name="no_location_permission_no_ask">Non hai consentito il permesso per ricevere la tua posizione, ed hai chiesto di non chiederlo più. Cambia questa impostazione nelle impostazioni di sistema!</string>
+    <string name="your_position">La tua posizione</string>
+    <string name="your_saved_position">Posizione nota</string>
+    <string name="start_note_position_drag">Ora puoi muovere il marker sulla nuova posizione!</string>
+    <string name="end_note_position_drag">La nuova posizione è impostata!</string>
+    <string name="search_place">Cerca\nlocalità</string>
+    <string name="note_position_removed">Posizione della nota rimossa!</string>
+    <string name="note_position_now_is">La tua posizione della nota ora è in:</string>
+    <string name="map_long_press_marker">Fai un click prolungato sulla mappa per inserire un marker in quella posizione.</string>
 </resources>

@@ -2,13 +2,16 @@ package com.botty.secretnotes.storage.storage_extensions
 
 import androidx.lifecycle.Observer
 import com.botty.secretnotes.R
-import com.botty.secretnotes.storage.new_db.category.CategoryViewModel
+import com.botty.secretnotes.storage.AppPreferences
 import com.botty.secretnotes.storage.new_db.category.Category
 import com.botty.secretnotes.storage.new_db.category.CategoryLiveData
+import com.botty.secretnotes.storage.new_db.category.CategoryViewModel
 import com.botty.secretnotes.storage.new_db.category.Category_
 import com.botty.secretnotes.storage.new_db.note.Note
-import com.botty.secretnotes.utilities.*
 import com.botty.secretnotes.utilities.activites.BottomSheetCategoriesActivity
+import com.botty.secretnotes.utilities.await
+import com.botty.secretnotes.utilities.logException
+import com.botty.secretnotes.utilities.toastError
 import com.tingyik90.snackprogressbar.SnackProgressBar
 import com.tingyik90.snackprogressbar.SnackProgressBarManager
 import es.dmoral.toasty.Toasty
@@ -16,12 +19,11 @@ import io.objectbox.exception.UniqueViolationException
 import io.objectbox.kotlin.query
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.*
-import java.lang.Exception
 
 @ExperimentalCoroutinesApi
 fun BottomSheetCategoriesActivity.saveCategory(category: Category): Category? {
     category.name = category.name.toUpperCase()
-    return if(userHasAccount()) {
+    return if(AppPreferences.userHasAccount) {
         val categoryDoc = if(category.firestoreId.isNullOrBlank()) {
             getCategoriesCollection().document().apply {
                 category.firestoreId = id
@@ -47,7 +49,7 @@ fun BottomSheetCategoriesActivity.saveCategory(category: Category): Category? {
 fun BottomSheetCategoriesActivity.getCategories(categoryViewModel: CategoryViewModel) {
     categoryViewModel.categoryLiveData?.clearAll(this)
 
-    if(userHasAccount()) {
+    if(AppPreferences.userHasAccount) {
         val query = getCategoriesCollection().orderBy(Category.NAME_KEY)
         categoryViewModel.categoryLiveData = CategoryLiveData(query).apply {
             observe(this@getCategories, Observer(categoryViewModel::onCategoriesChanged))
@@ -67,7 +69,7 @@ fun BottomSheetCategoriesActivity.getCategories(categoryViewModel: CategoryViewM
 @ExperimentalCoroutinesApi
 fun BottomSheetCategoriesActivity.deleteCategory(category: Category, keepNotes: Boolean,
                                                  onCategoryDeleted: (() -> Unit)) {
-    if(userHasAccount()) {
+    if(AppPreferences.userHasAccount) {
         category.firestoreId?.let {categoryId ->
 
             suspend fun deleteCategory(snackProgressBarManager: SnackProgressBarManager) {

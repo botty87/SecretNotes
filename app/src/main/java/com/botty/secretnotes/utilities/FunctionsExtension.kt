@@ -3,25 +3,31 @@ package com.botty.secretnotes.utilities
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.content.res.ColorStateList
+import android.location.Location
 import android.net.Uri
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat
-import androidx.core.content.edit
 import com.afollestad.materialdialogs.MaterialDialog
 import com.botty.secretnotes.BuildConfig
 import com.botty.secretnotes.MyApplication
 import com.botty.secretnotes.R
+import com.botty.secretnotes.note.NoteFragmentCallbacks
+import com.botty.secretnotes.storage.AppPreferences
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.crashlytics.android.Crashlytics
 import com.danimahardhika.cafebar.CafeBar
 import com.danimahardhika.cafebar.CafeBarCallback
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdView
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.Marker
+import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.tasks.Task
+import com.google.firebase.firestore.GeoPoint
 import com.google.firebase.storage.FirebaseStorage
 import es.dmoral.toasty.Toasty
 import kotlin.coroutines.resume
@@ -76,17 +82,16 @@ fun Activity.loadAd(adView: AdView) {
     adView.loadAd(adRequest)
 }
 
-fun Context.getAppPreferences(): SharedPreferences {
-    return getSharedPreferences("note_preferences", Context.MODE_PRIVATE)
-}
-
-fun Context.userHasAccount(): Boolean {
-    return getAppPreferences().getBoolean(Constants.USER_HAS_ACCOUNT_KEY, false)
-}
-
 fun Context.getDialog(): MaterialDialog {
     return MaterialDialog(this)
             .cancelable(false)
+}
+
+fun NoteFragmentCallbacks.getDialog(): MaterialDialog? {
+    return this.context?.run {
+        MaterialDialog(this)
+                .cancelable(false)
+    }
 }
 
 fun Context.toastSuccess(stringRes: Int) {
@@ -101,15 +106,36 @@ fun Context.toastError(message: String) {
     Toasty.error(this, message, Toast.LENGTH_LONG).show()
 }
 
+fun NoteFragmentCallbacks.toastError(stringRes: Int) {
+    this.context?.run {
+        Toasty.error(this, stringRes, Toast.LENGTH_LONG).show()
+    }
+}
+
+fun NoteFragmentCallbacks.toastInfo(stringRes: Int) {
+    this.context?.run {
+        Toasty.info(this, stringRes, Toast.LENGTH_LONG).show()
+    }
+}
+
+fun NoteFragmentCallbacks.toastSuccess(stringRes: Int) {
+    this.context?.run {
+        Toasty.success(this, stringRes, Toast.LENGTH_LONG).show()
+    }
+}
+
+fun NoteFragmentCallbacks.toastSuccess(message: String) {
+    this.context?.run {
+        Toasty.success(this, message, Toast.LENGTH_LONG).show()
+    }
+}
+
 fun Activity.showCafeBar(contentRes: Int, coordLayout: CoordinatorLayout? = null, duration: Int? = null,
                          action: Pair<Int, CafeBarCallback>? = null ){
 
-    if(getAppPreferences().getBoolean(Constants.FIRST_SNACKBAR_KEY, true)) {
+    if(AppPreferences.firstSnackbar) {
         Toasty.info(this, R.string.first_snackbark_advice, Toast.LENGTH_LONG).show()
-
-        getAppPreferences().edit {
-            putBoolean(Constants.FIRST_SNACKBAR_KEY, false)
-        }
+        AppPreferences.firstSnackbar = false
     }
 
     val builder = CafeBar.builder(this)
@@ -134,6 +160,13 @@ fun Activity.showCafeBar(contentRes: Int, coordLayout: CoordinatorLayout? = null
     }
 }
 
+fun NoteFragmentCallbacks.showCafeBar(contentRes: Int, coordLayout: CoordinatorLayout? = null, duration: Int? = null,
+                         action: Pair<Int, CafeBarCallback>? = null ) {
+    activity?.run {
+        showCafeBar(contentRes, coordLayout, duration, action)
+    }
+}
+
 fun Activity.getMyApplication(): MyApplication {
     return (application as MyApplication)
 }
@@ -143,6 +176,22 @@ fun Activity.openDialer(phone: String) {
         data = Uri.parse(phone)
     }
     startActivity(intent)
+}
+
+fun Location.getLatLng(): LatLng {
+    return LatLng(latitude, longitude)
+}
+
+fun GeoPoint.getLatLng(): LatLng {
+    return LatLng(latitude, longitude)
+}
+
+fun LatLng.getGeoPoint(): GeoPoint {
+    return GeoPoint(latitude, longitude)
+}
+
+fun MarkerOptions.addToMap(googleMap: GoogleMap): Marker {
+    return googleMap.addMarker(this)
 }
 
 suspend fun <T> Task<T>.await(): T = suspendCoroutine { continuation ->

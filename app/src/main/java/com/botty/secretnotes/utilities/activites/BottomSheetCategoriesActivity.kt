@@ -66,7 +66,7 @@ abstract class BottomSheetCategoriesActivity: OnPauseTrackActivity(), CoroutineS
     protected fun setBottomSheetCategories(bottomSheetCategories: View, bottomSheetPeek: View,
                                            recyclerViewCategories: RecyclerView, imageViewShowHide: ImageView,
                                            viewCategoriesBackground: View,
-                                           fabNewNote: FloatingActionButton? = null,
+                                           fabAction: FloatingActionButton? = null,
                                            isEditMode: Boolean = true) {
 
         fun setAnimation() {
@@ -96,7 +96,7 @@ abstract class BottomSheetCategoriesActivity: OnPauseTrackActivity(), CoroutineS
                     originalScale()
                     alpha(1F)
                 }
-                fabNewNote?.run {
+                fabAction?.run {
                     animate(this) toBe {
                         outOfScreen(Gravity.LEFT)
                         toBeRotated(360F)

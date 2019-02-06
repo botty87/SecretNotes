@@ -7,7 +7,6 @@ import android.os.Bundle
 import android.text.InputType
 import android.view.View
 import android.view.View.GONE
-import androidx.core.content.edit
 import androidx.databinding.DataBindingUtil
 import com.afollestad.materialdialogs.WhichButton
 import com.afollestad.materialdialogs.actions.setActionButtonEnabled
@@ -16,6 +15,7 @@ import com.afollestad.materialdialogs.input.getInputField
 import com.afollestad.materialdialogs.input.input
 import com.botty.secretnotes.R
 import com.botty.secretnotes.databinding.ActivitySettingsBinding
+import com.botty.secretnotes.storage.AppPreferences
 import com.botty.secretnotes.storage.storage_extensions.moveDBLocally
 import com.botty.secretnotes.utilities.*
 import com.botty.secretnotes.utilities.activites.OnPauseTrackActivity
@@ -41,7 +41,7 @@ class SettingsActivity : OnPauseTrackActivity(), CoroutineScope by MainScope() {
 
         super.onCreate(savedInstanceState)
         settingsBinding = DataBindingUtil.setContentView(this, R.layout.activity_settings)
-        settingsBinding.settings = SettingsContainer.getSettingsContainer(this)
+        settingsBinding.settings = SettingsContainer()
 
         setBackground(imageViewBackground, R.drawable.settings_background)
 
@@ -54,11 +54,9 @@ class SettingsActivity : OnPauseTrackActivity(), CoroutineScope by MainScope() {
 
     private fun setSaveButton() {
         buttonSave.setOnClickListener {
-            settingsBinding.settings?.storeSettings(this)
+            settingsBinding.settings?.storeSettings()
             settingsBinding.autoLock?.let {autoLock ->
-                getAppPreferences().edit {
-                    putBoolean(Security.AUTO_LOCK_KEY, autoLock)
-                }
+                AppPreferences.autoLock = autoLock
             }
             toastSuccess(R.string.settings_saved)
             setResult(Activity.RESULT_OK, Intent().apply {
@@ -69,29 +67,28 @@ class SettingsActivity : OnPauseTrackActivity(), CoroutineScope by MainScope() {
     }
 
     private fun setAutoLock() {
-        getAppPreferences().getBoolean(Security.AUTO_LOCK_KEY, false).run {
-            if(getAppPreferences().contains(Security.MASTER_PAS_KEY)) {
-                settingsBinding.autoLock = this
-            }
-            else {
-                settingsBinding.autoLock = false
-            }
-            if(settingsBinding.autoLock!!) {
-                checkboxAutoLock.text = getString(R.string.autolock)
-            }
-            else {
-                checkboxAutoLock.text = getString(R.string.no_autolock)
-            }
+        if(AppPreferences.masterPas.isNullOrEmpty()) {
+            settingsBinding.autoLock = false
+        }
+        else {
+            settingsBinding.autoLock = AppPreferences.autoLock
+        }
+
+        if(settingsBinding.autoLock!!) {
+            checkboxAutoLock.text = getString(R.string.autolock)
+        }
+        else {
+            checkboxAutoLock.text = getString(R.string.no_autolock)
         }
 
         checkboxAutoLock.setOnCheckedChangeListener { buttonView, isChecked ->
             if(isChecked) {
-                if(getAppPreferences().contains(Security.MASTER_PAS_KEY)) {
-                    checkboxAutoLock.text = getString(R.string.autolock)
-                }
-                else {
+                if(AppPreferences.masterPas.isNullOrEmpty()) {
                     buttonView.isChecked = false
                     toastError(getString(R.string.set_master_password_before))
+                }
+                else {
+                    checkboxAutoLock.text = getString(R.string.autolock)
                 }
             }
             else {
@@ -104,10 +101,8 @@ class SettingsActivity : OnPauseTrackActivity(), CoroutineScope by MainScope() {
 
         fun removePassword() {
             askMasterPassword({
-                getAppPreferences().edit {
-                    remove(Security.MASTER_PAS_KEY)
-                    putBoolean(Security.AUTO_LOCK_KEY, false)
-                }
+                AppPreferences.autoLock = false
+                AppPreferences.masterPas = null
                 checkboxAutoLock.isChecked = false
                 toastSuccess(R.string.master_password_removed)
                 setButtonMasterPassword()
@@ -122,10 +117,8 @@ class SettingsActivity : OnPauseTrackActivity(), CoroutineScope by MainScope() {
                     .negativeButton(R.string.cancel)
                     .positiveButton(R.string.set) {
                         password?.run {
-                            val passwordHash = Security.getPasswordHash(this)
-                            getAppPreferences().edit{
-                                putString(Security.MASTER_PAS_KEY, passwordHash)
-                            }
+                            AppPreferences.masterPas = Security.getPasswordHash(this)
+
                             toastSuccess(R.string.master_password_set)
                             setButtonMasterPassword()
                         }
@@ -145,23 +138,23 @@ class SettingsActivity : OnPauseTrackActivity(), CoroutineScope by MainScope() {
                     }
         }
 
-        if(getAppPreferences().contains(Security.MASTER_PAS_KEY)) {
-            buttonMasterPassword.text = getString(R.string.remove)
-            buttonMasterPassword.setOnClickListener {
-                removePassword()
-            }
-        }
-        else {
+        if(AppPreferences.masterPas.isNullOrEmpty()) {
             buttonMasterPassword.text = getString(R.string.set_new_master_password)
             buttonMasterPassword.setOnClickListener {
                 setPassword()
+            }
+        }
+        else {
+            buttonMasterPassword.text = getString(R.string.remove)
+            buttonMasterPassword.setOnClickListener {
+                removePassword()
             }
         }
     }
 
     private fun setUserAccountStub() {
         FirebaseAuth.getInstance().currentUser?.let {user ->
-            if(userHasAccount() && !user.isAnonymous) {
+            if(AppPreferences.userHasAccount && !user.isAnonymous) {
                 viewStubUserAccount.inflate()
 
                 //Button delete user
@@ -228,9 +221,7 @@ class SettingsActivity : OnPauseTrackActivity(), CoroutineScope by MainScope() {
 
     private fun deleteUser(password: String?, user: FirebaseUser) {
         fun setUserDeleted() {
-            getAppPreferences().edit {
-                putBoolean(Constants.USER_HAS_ACCOUNT_KEY, false)
-            }
+            AppPreferences.userHasAccount = false
             userDeleted = true
             setResult(Activity.RESULT_OK, Intent().apply {
                 putExtra(Constants.USER_DELETED_KEY, userDeleted)

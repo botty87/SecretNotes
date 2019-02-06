@@ -56,5 +56,4 @@ object Security {
 
     const val MASTER_PAS_TO_SET_KEY = "mas_pas_set"
     const val MASTER_PAS_KEY = "mas_pas"
-    const val AUTO_LOCK_KEY = "auto_lock"
 }

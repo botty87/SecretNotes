@@ -10,7 +10,7 @@ import com.afollestad.materialdialogs.customview.customView
 import com.afollestad.materialdialogs.input.getInputField
 import com.afollestad.materialdialogs.input.input
 import com.botty.secretnotes.R
-import com.botty.secretnotes.utilities.getAppPreferences
+import com.botty.secretnotes.storage.AppPreferences
 import com.botty.secretnotes.utilities.getDialog
 import com.botty.secretnotes.utilities.toastError
 import com.github.ajalt.reprint.core.AuthenticationFailureReason
@@ -55,9 +55,8 @@ fun Activity.askMasterPassword(onSuccess: (() -> Unit)? = null, onDenied: (() ->
                 .show {
                     val inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
                     input(inputType = inputType) {_, password ->
-                        val passwordHash = getAppPreferences().getString(Security.MASTER_PAS_KEY, null)
                         when {
-                            Security.passwordMatch(passwordHash, password.toString()) -> {
+                            Security.passwordMatch(AppPreferences.masterPas, password.toString()) -> {
                                 dismiss()
                                 onSuccess?.invoke()
                             }

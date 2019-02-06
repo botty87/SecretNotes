@@ -2,10 +2,9 @@ package com.botty.secretnotes.storage.storage_extensions
 
 import android.app.Activity
 import com.botty.secretnotes.MainActivity
-import com.botty.secretnotes.settings.SettingsContainer
+import com.botty.secretnotes.storage.AppPreferences
 import com.botty.secretnotes.storage.new_db.category.Category
 import com.botty.secretnotes.storage.new_db.note.*
-import com.botty.secretnotes.utilities.userHasAccount
 import com.google.firebase.firestore.Query
 import io.objectbox.kotlin.query
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -16,7 +15,7 @@ fun Activity.saveNote(note: Note, updateTime: Boolean = true) {
         note.lastModified = Date()
     }
 
-    if(userHasAccount()) {
+    if(AppPreferences.userHasAccount) {
         val notesCol = getNotesCollection()
         val noteDocument = note.firestoreId?.run {
             notesCol.document(this)
@@ -41,11 +40,11 @@ fun Activity.saveNote(note: Note, updateTime: Boolean = true) {
 fun MainActivity.getNotes(category: Category?, noteViewModel: NoteViewModel, searchText: String? = null) {
     noteViewModel.noteLiveData?.clearAll(this)
 
-    val settingsContainer = SettingsContainer.getSettingsContainer(this)
+    //val settingsContainer = SettingsContainer.getSettingsContainer(this)
 
-    if(userHasAccount()) {
-        var query = if(settingsContainer.alphabetSort) {
-            if(settingsContainer.ascendingSort) {
+    if(AppPreferences.userHasAccount) {
+        var query = if(AppPreferences.alphabetSort) {
+            if(AppPreferences.ascendingSort) {
                 getNotesCollection().orderBy(Note.TITLE_KEY, Query.Direction.ASCENDING)
             }
             else {
@@ -53,7 +52,7 @@ fun MainActivity.getNotes(category: Category?, noteViewModel: NoteViewModel, sea
             }
         }
         else {
-            if(settingsContainer.ascendingSort) {
+            if(AppPreferences.ascendingSort) {
                 getNotesCollection().orderBy(Note.LAST_MODIFIED_KEY, Query.Direction.ASCENDING)
             }
             else {
@@ -61,7 +60,7 @@ fun MainActivity.getNotes(category: Category?, noteViewModel: NoteViewModel, sea
             }
         }
 
-        if(category?.firestoreId != null || settingsContainer.showNoCategoriesNotes) {
+        if(category?.firestoreId != null || AppPreferences.noCategoriesNotes) {
             query = query.whereEqualTo(Note.FIRESTORE_CAT_ID_KEY, category?.firestoreId)
         }
 
@@ -72,7 +71,7 @@ fun MainActivity.getNotes(category: Category?, noteViewModel: NoteViewModel, sea
     else {
         val categoryId = category?.id ?: Category.NO_CATEGORY_ID
         val query = getNotesBox().query {
-            if(categoryId != Category.NO_CATEGORY_ID || settingsContainer.showNoCategoriesNotes) {
+            if(categoryId != Category.NO_CATEGORY_ID || AppPreferences.noCategoriesNotes) {
                 equal(Note_.categoryId, categoryId)
             }
 
@@ -82,8 +81,8 @@ fun MainActivity.getNotes(category: Category?, noteViewModel: NoteViewModel, sea
                 contains(Note_.content, this)
             }
 
-            if(settingsContainer.alphabetSort) {
-                if(settingsContainer.ascendingSort) {
+            if(AppPreferences.alphabetSort) {
+                if(AppPreferences.ascendingSort) {
                     order(Note_.title)
                 }
                 else {
@@ -91,12 +90,12 @@ fun MainActivity.getNotes(category: Category?, noteViewModel: NoteViewModel, sea
                 }
             }
             else {
-                if(settingsContainer.ascendingSort) {
-                    order(Note_.lastModified)
-                }
-                else {
-                    orderDesc(Note_.lastModified)
-                }
+            }
+            if(AppPreferences.ascendingSort) {
+                order(Note_.lastModified)
+            }
+            else {
+                orderDesc(Note_.lastModified)
             }
         }
 
@@ -108,7 +107,7 @@ fun MainActivity.getNotes(category: Category?, noteViewModel: NoteViewModel, sea
 
 @ExperimentalCoroutinesApi
 fun MainActivity.deleteNote(note: Note) {
-    if(userHasAccount()) {
+    if(AppPreferences.userHasAccount) {
         note.firestoreId?.run {
             getNotesCollection().document(this).delete()
         }

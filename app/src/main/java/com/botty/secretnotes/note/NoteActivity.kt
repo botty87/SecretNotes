@@ -1,40 +1,41 @@
-package com.botty.secretnotes
+package com.botty.secretnotes.note
 
 import android.app.Activity
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.text.InputType
-import android.text.Spannable
-import android.text.util.Linkify
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.View.GONE
+import android.view.View.VISIBLE
 import androidx.databinding.DataBindingUtil
 import com.afollestad.materialdialogs.WhichButton
 import com.afollestad.materialdialogs.actions.setActionButtonEnabled
 import com.afollestad.materialdialogs.input.getInputField
 import com.afollestad.materialdialogs.input.input
+import com.botty.secretnotes.R
 import com.botty.secretnotes.databinding.ActivityNoteBinding
-import com.botty.secretnotes.settings.SettingsContainer
+import com.botty.secretnotes.storage.AppPreferences
 import com.botty.secretnotes.storage.new_db.category.Category
 import com.botty.secretnotes.storage.new_db.note.Note
 import com.botty.secretnotes.storage.storage_extensions.saveNote
-import com.botty.secretnotes.utilities.*
 import com.botty.secretnotes.utilities.activites.BottomSheetCategoriesActivity
+import com.botty.secretnotes.utilities.getDialog
+import com.botty.secretnotes.utilities.loadAd
 import com.botty.secretnotes.utilities.security.Security
-import com.danimahardhika.cafebar.CafeBar
-import com.danimahardhika.cafebar.CafeBarCallback
+import com.botty.secretnotes.utilities.toastSuccess
 import es.dmoral.toasty.Toasty
 import kotlinx.android.synthetic.main.activity_note.*
 import kotlinx.android.synthetic.main.bottom_sheet_main_content.*
 import kotlinx.android.synthetic.main.bottom_sheet_main_title.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import org.jetbrains.anko.browse
-import org.jetbrains.anko.email
+import net.yslibrary.android.keyboardvisibilityevent.KeyboardVisibilityEvent
 
 @ExperimentalCoroutinesApi
-class NoteActivity : BottomSheetCategoriesActivity() {
+class NoteActivity : BottomSheetCategoriesActivity(), NoteCallbacks {
+
     private lateinit var noteBinding: ActivityNoteBinding
 
     private var password: String? = null
@@ -42,11 +43,45 @@ class NoteActivity : BottomSheetCategoriesActivity() {
     private lateinit var buttonUnlock: MenuItem
     private lateinit var buttonLock: MenuItem
 
-    private val isButtonSaveEnabled by lazy {
-        !SettingsContainer.getSettingsContainer(this).noteAutoSave
-    }
+    private val isButtonSaveEnabled = AppPreferences.noteAutoSave
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
+        fun setViewPager() {
+            viewPager.adapter = PagerAdapter(supportFragmentManager, this)
+            tabLayout.setupWithViewPager(viewPager)
+        }
+
+        fun setButtonSave() {
+            if(isButtonSaveEnabled) {
+                buttonSave.setOnClickListener {
+                    if(noteBinding.note?.isValid() == true) {
+                        saveNote()
+                    }
+                    else {
+                        Toasty.error(this, getString(R.string.fill_the_note)).show()
+                    }
+                }
+            }
+            else {
+                buttonSave.visibility = View.GONE
+            }
+        }
+
+        fun setKeyboardListener() {
+            KeyboardVisibilityEvent.setEventListener(this) { isOpen ->
+                if(isOpen) {
+                    if(!editTextTitle.hasFocus()) {
+                        tabLayout.visibility = GONE
+                        buttonSave.hide()
+                    }
+                } else {
+                    tabLayout.visibility = VISIBLE
+                    buttonSave.show()
+                    currentFocus?.clearFocus()
+                }
+            }
+        }
 
         super.onCreate(savedInstanceState)
         noteBinding = DataBindingUtil.setContentView(this, R.layout.activity_note)
@@ -57,50 +92,13 @@ class NoteActivity : BottomSheetCategoriesActivity() {
         loadAd(adView)
 
         setBottomSheetCategories(bottomSheetCategories, bottomSheetPeek, recyclerViewCategories,
-                imageViewShowHide, viewCategoriesBackground, isEditMode = false)
+                imageViewShowHide, viewCategoriesBackground, buttonSave, false)
 
-        if(isButtonSaveEnabled) {
-            buttonSave.setOnClickListener {
-                if(noteBinding.note?.isValid() == true) {
-                    saveNote()
-                }
-                else {
-                    Toasty.error(this, getString(R.string.fill_the_note)).show()
-                }
-            }
-        }
-        else {
-            buttonSave.visibility = View.GONE
-        }
+        setButtonSave()
+        setViewPager()
+        setKeyboardListener()
 
         onBackPressedPlus = this::onBackPressedPlus
-
-        setLinksContentActions()
-    }
-
-    private fun setLinksContentActions() {
-        editTextContent.afterTextChanged {
-            Linkify.addLinks(it as Spannable, Linkify.ALL)
-        }
-
-        editTextContent.onLinkClicked {url, urlType ->
-            val textRes = when(urlType) {
-                UrlType.WEB -> R.string.snackbar_link_click
-                UrlType.EMAIL -> R.string.snackbar_email_click
-                else -> R.string.snackbar_phone_click
-            }
-
-            showCafeBar(textRes, noteCoordLayout, duration = CafeBar.Duration.MEDIUM,
-                    action = R.string.open to CafeBarCallback {cafeBar ->
-                        when (urlType) {
-                            UrlType.WEB -> browse(url)
-                            UrlType.EMAIL ->
-                                url.removePrefix("mailto:").run { email(this) }
-                            else -> openDialer(url)
-                        }
-                        cafeBar.dismiss()
-                    })
-        }
     }
 
     override fun onNewIntent(intent: Intent?) {
@@ -331,7 +329,7 @@ class NoteActivity : BottomSheetCategoriesActivity() {
 
     override fun onCategoryClicked(category: Category?) {
         super.onCategoryClicked(category)
-        if(userHasAccount()) {
+        if(AppPreferences.userHasAccount) {
             noteBinding.note?.firestoreCatId = category?.firestoreId
         }
         else {
@@ -348,5 +346,18 @@ class NoteActivity : BottomSheetCategoriesActivity() {
     override fun onDestroy() {
         super.onDestroy()
         noteBinding.note = null
+    }
+
+    override fun getNote(): Note {
+        return noteBinding.note!!
+    }
+
+    override fun changeFabSaveVisibility(isVisible: Boolean) {
+        if(isVisible) {
+            buttonSave.show()
+        }
+        else {
+            buttonSave.hide()
+        }
     }
 }

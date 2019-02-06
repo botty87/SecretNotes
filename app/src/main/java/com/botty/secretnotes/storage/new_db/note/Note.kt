@@ -6,12 +6,11 @@ import android.os.Parcelable
 import androidx.databinding.BaseObservable
 import androidx.databinding.Bindable
 import com.botty.secretnotes.storage.new_db.category.Category
+import com.botty.secretnotes.utilities.Constants
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
-import io.objectbox.annotation.Backlink
-import io.objectbox.annotation.Entity
-import io.objectbox.annotation.Id
-import io.objectbox.annotation.Transient
+import com.google.firebase.firestore.GeoPoint
+import io.objectbox.annotation.*
 import io.objectbox.exception.DbDetachedException
 import io.objectbox.relation.ToMany
 import io.objectbox.relation.ToOne
@@ -62,6 +61,9 @@ class Note() : Parcelable, BaseObservable() {
     @Transient
     var firestoreCatId: String? = null
 
+    @Convert(converter = GeoPointConverter::class, dbType = String::class)
+    var position: GeoPoint? = null
+
     constructor(parcel: Parcel) : this() {
         id = parcel.readLong()
         firestoreId = parcel.readString()
@@ -70,6 +72,12 @@ class Note() : Parcelable, BaseObservable() {
         passwordHash = parcel.readString()
         category.targetId = parcel.readLong()
         firestoreCatId = parcel.readString()
+
+        val latitude = parcel.readDouble()
+        val longitude = parcel.readDouble()
+        if(latitude != Constants.NO_LAT_LON_VALUE && longitude != Constants.NO_LAT_LON_VALUE) {
+            position = GeoPoint(latitude, longitude)
+        }
 
         val nonceArraySize = parcel.readInt()
         if(nonceArraySize > 0) {
@@ -115,6 +123,8 @@ class Note() : Parcelable, BaseObservable() {
         parcel.writeString(passwordHash)
         parcel.writeLong(category.targetId)
         parcel.writeString(firestoreCatId)
+        parcel.writeDouble(position?.latitude ?: Constants.NO_LAT_LON_VALUE)
+        parcel.writeDouble(position?.longitude ?: Constants.NO_LAT_LON_VALUE)
 
         try {
             if (nonce.isNotEmpty()) {
@@ -148,6 +158,7 @@ class Note() : Parcelable, BaseObservable() {
             other.passwordHash == this.passwordHash &&
             other.title == this.title &&
             other.content == this.content &&
+            other.position == this.position &&
             other.lastModified?.equals(this.lastModified) ?: false
         }
         else {
@@ -166,6 +177,7 @@ class Note() : Parcelable, BaseObservable() {
         result = 31 * result + category.hashCode()
         result = 31 * result + (firestoreCatId?.hashCode() ?: 0)
         result = 31 * result + (nonce.hashCode())
+        result = 31 * result + (position?.hashCode() ?: 0)
         return result
     }
 
@@ -192,6 +204,7 @@ class Note() : Parcelable, BaseObservable() {
         const val LAST_MODIFIED_KEY = "lastModified"
         private const val NONCE_KEY = "nonce"
         const val FIRESTORE_CAT_ID_KEY = "firestoreCatId"
+        private const val POSITION_KEY = "position"
 
         fun getFirestoreMap(note: Note): HashMap<String, Any?> {
             return HashMap<String, Any?>().apply {
@@ -200,6 +213,7 @@ class Note() : Parcelable, BaseObservable() {
                 this[PASSWORD_HASH_KEY] = note.passwordHash
                 this[LAST_MODIFIED_KEY] = note.lastModified
                 this[FIRESTORE_CAT_ID_KEY] = note.firestoreCatId
+                this[POSITION_KEY] = note.position
 
                 val nonceList =
                         when {
@@ -220,6 +234,7 @@ class Note() : Parcelable, BaseObservable() {
                     passwordHash = it[PASSWORD_HASH_KEY] as String?
                     lastModified = (it[LAST_MODIFIED_KEY] as Timestamp?)?.toDate()
                     firestoreCatId = it[FIRESTORE_CAT_ID_KEY] as String?
+                    position = it[POSITION_KEY] as GeoPoint?
                     (it[NONCE_KEY] as List<Int>?)?.run {
                         if(this.isNotEmpty()) {
                             nonceArray = ByteArray(this.size)

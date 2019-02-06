@@ -1,9 +1,8 @@
 package com.botty.secretnotes.utilities.activites
 
 import androidx.appcompat.app.AppCompatActivity
-import com.botty.secretnotes.utilities.getAppPreferences
+import com.botty.secretnotes.storage.AppPreferences
 import com.botty.secretnotes.utilities.getMyApplication
-import com.botty.secretnotes.utilities.security.Security
 import com.botty.secretnotes.utilities.security.askMasterPassword
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.joda.time.LocalDateTime
@@ -16,7 +15,7 @@ abstract class OnPauseTrackActivity: AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        if(getAppPreferences().getBoolean(Security.AUTO_LOCK_KEY, false)) {
+        if(AppPreferences.autoLock) {
             if(passwordAsked) {
                 finishAffinity()
             }
@@ -29,7 +28,7 @@ abstract class OnPauseTrackActivity: AppCompatActivity() {
     @ExperimentalCoroutinesApi
     override fun onResume() {
         fun checkIfLockDueInactivity() {
-            if(getAppPreferences().getBoolean(Security.AUTO_LOCK_KEY, false)) {
+            if(AppPreferences.autoLock) {
                 getMyApplication().appStartPause?.run {
                     val minutes = Minutes.minutesBetween(this, LocalDateTime.now()).minutes
                     if(minutes >= 1) {

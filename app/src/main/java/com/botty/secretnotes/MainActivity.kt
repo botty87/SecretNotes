@@ -1,6 +1,7 @@
 package com.botty.secretnotes
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -11,16 +12,17 @@ import android.view.MenuItem
 import android.view.View
 import android.view.View.GONE
 import android.widget.Toast
-import androidx.core.content.edit
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.afollestad.materialdialogs.WhichButton
 import com.afollestad.materialdialogs.actions.setActionButtonEnabled
 import com.afollestad.materialdialogs.callbacks.onDismiss
 import com.afollestad.materialdialogs.input.getInputField
 import com.afollestad.materialdialogs.input.input
+import com.botty.secretnotes.note.NoteActivity
 import com.botty.secretnotes.settings.SettingsActivity
-import com.botty.secretnotes.settings.SettingsContainer
+import com.botty.secretnotes.storage.AppPreferences
 import com.botty.secretnotes.storage.adapters.NoteAdapter
 import com.botty.secretnotes.storage.new_db.category.Category
 import com.botty.secretnotes.storage.new_db.note.Note
@@ -70,6 +72,26 @@ class MainActivity : BottomSheetCategoriesActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        fun checkIfMigratePreferences() {
+            if(AppPreferences.migrationNeeded) {
+                val preferences = getSharedPreferences("note_preferences", Context.MODE_PRIVATE)
+
+                AppPreferences.userHasAccount =
+                        preferences.getBoolean(Constants.USER_HAS_ACCOUNT_KEY, AppPreferences.userHasAccount)
+
+                AppPreferences.userAccountToSet =
+                        preferences.getBoolean(Constants.USER_ACCOUNT_TO_SET_KEY, AppPreferences.userAccountToSet)
+
+                AppPreferences.masterPasToSet =
+                        preferences.getBoolean(Security.MASTER_PAS_TO_SET_KEY, AppPreferences.masterPasToSet)
+
+                AppPreferences.masterPas =
+                        preferences.getString(Security.MASTER_PAS_KEY, AppPreferences.masterPas)
+
+                AppPreferences.migrationNeeded = false
+            }
+        }
+
         //Set the layout and the toolbar
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -80,6 +102,7 @@ class MainActivity : BottomSheetCategoriesActivity() {
         loadAd(adView)
 
         launch {
+            checkIfMigratePreferences()
             isUserAccountOk()?.run {
                 runStandardStartup(uid)
             }
@@ -88,9 +111,7 @@ class MainActivity : BottomSheetCategoriesActivity() {
 
     //Verify if it's the first run or if the user has a valid local profile, or a valide Firebase
     private suspend fun isUserAccountOk(): FirebaseUser? {
-        val preferences = getAppPreferences()
-        val userAccountToSet = preferences.getBoolean(Constants.USER_ACCOUNT_TO_SET_KEY, true)
-        if(userAccountToSet) {
+        if(AppPreferences.userAccountToSet) {
             getDialog()
                     .title(R.string.welcome_title)
                     .message(R.string.welcome_message)
@@ -104,7 +125,7 @@ class MainActivity : BottomSheetCategoriesActivity() {
         }
         else {
             val firebaseAuth = FirebaseAuth.getInstance()
-            if(userHasAccount()) {
+            if(AppPreferences.userHasAccount) {
                 return if (firebaseAuth.currentUser?.isAnonymous != false) {
                     try {
                         AuthUI.getInstance().silentSignIn(this, Constants.LOGIN_PROVIDERS)
@@ -148,27 +169,21 @@ class MainActivity : BottomSheetCategoriesActivity() {
 
         //Return true if we can continue, false otherwise
         fun verifyMasterPas(): Boolean {
-            val preferences = getAppPreferences()
-            if(preferences.getBoolean(Security.MASTER_PAS_TO_SET_KEY, true)) {
+            if(AppPreferences.masterPasToSet) {
 
                 var password: String? = null
                 getDialog()
                         .title(R.string.master_password_title)
                         .message(R.string.master_password_message)
                         .negativeButton(R.string.proceed_whitout_master_password) {
-                            preferences.edit{
-                                putBoolean(Security.MASTER_PAS_TO_SET_KEY, false)
-                            }
+                            AppPreferences.masterPasToSet = false
                             getNotesAndCategories()
                         }
                         .positiveButton(R.string.set) {
-                            preferences.edit{
-                                password?.let {password ->
-                                    val passwordHash = Security.getPasswordHash(password)
-                                    putString(Security.MASTER_PAS_KEY, passwordHash)
-                                }
-                                putBoolean(Security.MASTER_PAS_TO_SET_KEY, false)
+                            password?.let {password ->
+                                AppPreferences.masterPas = Security.getPasswordHash(password)
                             }
+                            AppPreferences.masterPasToSet = false
                             getNotesAndCategories()
                         }
                         .show {
@@ -187,11 +202,11 @@ class MainActivity : BottomSheetCategoriesActivity() {
                 return false
             }
             else {
-                return if(!preferences.contains(Security.MASTER_PAS_KEY)) {
+                return if(AppPreferences.masterPas.isNullOrEmpty()) {
+                    true
+                } else {
                     askMasterPassword({ getNotesAndCategories() }, { finish() })
                     false
-                } else {
-                    true
                 }
             }
         }
@@ -200,10 +215,8 @@ class MainActivity : BottomSheetCategoriesActivity() {
         setBackground(imageViewBackground)
         setFabNewNote()
 
-        //If developing skip
-        when {
-            BuildConfig.DEBUG -> getNotesAndCategories()
-            verifyMasterPas() -> getNotesAndCategories()
+        if(verifyMasterPas()) {
+            getNotesAndCategories()
         }
     }
 
@@ -211,7 +224,7 @@ class MainActivity : BottomSheetCategoriesActivity() {
         fabNewNote.setOnClickListener {
             startNoteActivity(Note().also { note ->
                 categoryAdapter.selectedCategory?.let { category ->
-                    if(userHasAccount()) {
+                    if(AppPreferences.userHasAccount) {
                         note.firestoreCatId = category.firestoreId
                     }
                     else {
@@ -220,6 +233,18 @@ class MainActivity : BottomSheetCategoriesActivity() {
                 }
             })
         }
+
+        recyclerViewNotes.addOnScrollListener(object: RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                if(dy > 0){
+                    fabNewNote.hide()
+                } else{
+                    fabNewNote.show()
+                }
+
+                super.onScrolled(recyclerView, dx, dy)
+            }
+        })
     }
 
     private fun loadNotes() {
@@ -238,7 +263,7 @@ class MainActivity : BottomSheetCategoriesActivity() {
                 removeItemDecorationAt(0)
             }
 
-            if(SettingsContainer.getSettingsContainer(this@MainActivity).oneColumn) {
+            if(AppPreferences.oneColumn) {
                 layoutManager = LinearLayoutManager(this@MainActivity)
                 addItemsMargins(10, false)
             }
@@ -297,11 +322,8 @@ class MainActivity : BottomSheetCategoriesActivity() {
         fun onLoginRequest() {
             if(resultCode == Activity.RESULT_OK) {
                 FirebaseAuth.getInstance().currentUser?.run {
-                    val userHasAccount = data?.getBooleanExtra(Constants.USER_HAS_ACCOUNT_KEY, false) ?: false
-                    getAppPreferences().edit {
-                        putBoolean(Constants.USER_HAS_ACCOUNT_KEY, userHasAccount)
-                        putBoolean(Constants.USER_ACCOUNT_TO_SET_KEY, false)
-                    }
+                    AppPreferences.userHasAccount = data?.getBooleanExtra(Constants.USER_HAS_ACCOUNT_KEY, false) ?: false
+                    AppPreferences.userAccountToSet = false
 
                     runStandardStartup(uid)
                 } ?: finish()
@@ -377,7 +399,7 @@ class MainActivity : BottomSheetCategoriesActivity() {
         }
 
         fun onChangeUserAccount() {
-            if(resultCode == Activity.RESULT_OK && !userHasAccount()
+            if(resultCode == Activity.RESULT_OK && !AppPreferences.userHasAccount
                     && FirebaseAuth.getInstance().currentUser?.isAnonymous == false) {
                 migrateToFirebase()
             }
@@ -405,9 +427,7 @@ class MainActivity : BottomSheetCategoriesActivity() {
                     val isOk = moveDBToFirebase()
                     snackProgressBarManager.dismiss()
                     if(isOk) {
-                        getAppPreferences().edit {
-                            putBoolean(Constants.USER_HAS_ACCOUNT_KEY, true)
-                        }
+                        AppPreferences.userHasAccount = true
                         toastSuccess(R.string.migration_completed)
                     }
                     else {
@@ -449,9 +469,7 @@ class MainActivity : BottomSheetCategoriesActivity() {
                     val isOk = moveDBLocally(removeNotes)
                     snackProgressBarManager.dismiss()
                     if(isOk) {
-                        getAppPreferences().edit {
-                            putBoolean(Constants.USER_HAS_ACCOUNT_KEY, false)
-                        }
+                        AppPreferences.userHasAccount = false
                         toastSuccess(R.string.migration_completed)
                     }
                     withContext(NonCancellable) {
@@ -543,7 +561,7 @@ class MainActivity : BottomSheetCategoriesActivity() {
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
 
         fun onAccountAction() {
-            if(userHasAccount()) {
+            if(AppPreferences.userHasAccount) {
                 val accountMessage = FirebaseAuth.getInstance().currentUser?.run {
                     displayName?.run {
                         getString(R.string.logged_as) + "\n" + this + "\n" + email

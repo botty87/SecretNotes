@@ -127,4 +127,20 @@
     <string name="snackbar_phone_click">It seems that you clicked a phone number!</string>
     <string name="first_snackbark_advice">If you don\'t need the snackbar info you can swipe out it on the right, without waiting!</string>
     <string name="set_master_password_before">Set a master password before!</string>
+    <string name="text">Text</string>
+    <string name="position">Position</string>
+    <string name="user_position_title">User position</string>
+    <string name="user_position_message">I need the permission to retrieve your position, for locating you on the map. Do you allow?</string>
+    <string name="allow">Allow</string>
+    <string name="deny">Deny</string>
+    <string name="no_location_permission">I can\'t get your position: permission denied!</string>
+    <string name="no_location_permission_no_ask">You don\'t grant the location permission and said to not ask again. Change this in the system settings!</string>
+    <string name="your_position">Your position</string>
+    <string name="your_saved_position">Note position</string>
+    <string name="start_note_position_drag">Now you can move the marker to the new position!</string>
+    <string name="end_note_position_drag">The new note position is set!</string>
+    <string name="note_position_removed">Note position removed!</string>
+    <string name="search_place">Search\nplace</string>
+    <string name="note_position_now_is">Your note position is now in:</string>
+    <string name="map_long_press_marker">Long press on the map to put a marker and save a position.</string>
 </resources>
