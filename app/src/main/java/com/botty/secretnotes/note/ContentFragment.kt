@@ -60,7 +60,7 @@ class ContentFragment : NoteFragmentCallbacks() {
             }
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        if (noteCallbacks?.getIsButtonSaveEnabled() == true && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             scrollViewTextContent.setOnScrollChangeListener { v: View?, scrollX: Int, scrollY: Int, oldScrollX: Int, oldScrollY: Int ->
                 if (scrollY > oldScrollY) {
                     noteCallbacks?.changeFabSaveVisibility(false)

@@ -43,7 +43,7 @@ class NoteActivity : BottomSheetCategoriesActivity(), NoteCallbacks {
     private lateinit var buttonUnlock: MenuItem
     private lateinit var buttonLock: MenuItem
 
-    private val isButtonSaveEnabled = AppPreferences.noteAutoSave
+    private val isButtonSaveEnabled = !AppPreferences.noteAutoSave
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -73,11 +73,15 @@ class NoteActivity : BottomSheetCategoriesActivity(), NoteCallbacks {
                 if(isOpen) {
                     if(!editTextTitle.hasFocus()) {
                         tabLayout.visibility = GONE
-                        buttonSave.hide()
+                        if(isButtonSaveEnabled) {
+                            buttonSave.hide()
+                        }
                     }
                 } else {
                     tabLayout.visibility = VISIBLE
-                    buttonSave.show()
+                    if(isButtonSaveEnabled) {
+                        buttonSave.show()
+                    }
                     currentFocus?.clearFocus()
                 }
             }
@@ -91,8 +95,10 @@ class NoteActivity : BottomSheetCategoriesActivity(), NoteCallbacks {
 
         loadAd(adView)
 
+        val fab = if(isButtonSaveEnabled) buttonSave else null
+
         setBottomSheetCategories(bottomSheetCategories, bottomSheetPeek, recyclerViewCategories,
-                imageViewShowHide, viewCategoriesBackground, buttonSave, false)
+                imageViewShowHide, viewCategoriesBackground, fab, false)
 
         setButtonSave()
         setViewPager()
@@ -350,6 +356,10 @@ class NoteActivity : BottomSheetCategoriesActivity(), NoteCallbacks {
 
     override fun getNote(): Note {
         return noteBinding.note!!
+    }
+
+    override fun getIsButtonSaveEnabled(): Boolean {
+        return isButtonSaveEnabled
     }
 
     override fun changeFabSaveVisibility(isVisible: Boolean) {
