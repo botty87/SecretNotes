@@ -24,9 +24,9 @@ import com.botty.secretnotes.note.NoteActivity
 import com.botty.secretnotes.settings.SettingsActivity
 import com.botty.secretnotes.storage.AppPreferences
 import com.botty.secretnotes.storage.adapters.NoteAdapter
-import com.botty.secretnotes.storage.new_db.category.Category
-import com.botty.secretnotes.storage.new_db.note.Note
-import com.botty.secretnotes.storage.new_db.note.NoteViewModel
+import com.botty.secretnotes.storage.db.category.Category
+import com.botty.secretnotes.storage.db.note.Note
+import com.botty.secretnotes.storage.db.note.NoteViewModel
 import com.botty.secretnotes.storage.storage_extensions.*
 import com.botty.secretnotes.user_account.LoginActivity
 import com.botty.secretnotes.utilities.*
@@ -196,7 +196,7 @@ class MainActivity : BottomSheetCategoriesActivity() {
                                 password = if(isValid) text.toString() else null
                             }
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                getInputField()?.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO
+                                getInputField().importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO
                             }
                         }
                 return false
@@ -293,7 +293,7 @@ class MainActivity : BottomSheetCategoriesActivity() {
                             }
                         }
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            getInputField()?.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO
+                            getInputField().importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO
                         }
                     }
         }

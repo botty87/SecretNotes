@@ -1,8 +1,8 @@
-package com.botty.secretnotes.storage.new_db.category
+package com.botty.secretnotes.storage.db.category
 
 import android.os.Parcel
 import android.os.Parcelable
-import com.botty.secretnotes.storage.new_db.note.Note
+import com.botty.secretnotes.storage.db.note.Note
 import com.google.firebase.firestore.DocumentSnapshot
 import io.objectbox.annotation.*
 import io.objectbox.relation.ToMany

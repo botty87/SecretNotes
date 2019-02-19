@@ -18,13 +18,14 @@ import com.afollestad.materialdialogs.input.input
 import com.botty.secretnotes.R
 import com.botty.secretnotes.databinding.ActivityNoteBinding
 import com.botty.secretnotes.storage.AppPreferences
-import com.botty.secretnotes.storage.new_db.category.Category
-import com.botty.secretnotes.storage.new_db.note.Note
+import com.botty.secretnotes.storage.db.category.Category
+import com.botty.secretnotes.storage.db.note.Note
 import com.botty.secretnotes.storage.storage_extensions.saveNote
 import com.botty.secretnotes.utilities.activites.BottomSheetCategoriesActivity
 import com.botty.secretnotes.utilities.getDialog
 import com.botty.secretnotes.utilities.loadAd
 import com.botty.secretnotes.utilities.security.Security
+import com.botty.secretnotes.utilities.toastError
 import com.botty.secretnotes.utilities.toastSuccess
 import es.dmoral.toasty.Toasty
 import kotlinx.android.synthetic.main.activity_note.*
@@ -32,6 +33,7 @@ import kotlinx.android.synthetic.main.bottom_sheet_main_content.*
 import kotlinx.android.synthetic.main.bottom_sheet_main_title.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import net.yslibrary.android.keyboardvisibilityevent.KeyboardVisibilityEvent
+import java.util.*
 
 @ExperimentalCoroutinesApi
 class NoteActivity : BottomSheetCategoriesActivity(), NoteCallbacks {
@@ -180,6 +182,10 @@ class NoteActivity : BottomSheetCategoriesActivity(), NoteCallbacks {
     }
 
     private fun saveNote() {
+        if(noteBinding.note?.reminder?.before(Date()) == true) {
+            toastError(getString(R.string.reminder_before_now))
+            return
+        }
         noteBinding.note?.let {note ->
             if(password != null && password?.isNotBlank() == true) {
                 Security.encryptNote(password!!, note.content).run {
@@ -258,7 +264,7 @@ class NoteActivity : BottomSheetCategoriesActivity(), NoteCallbacks {
                             setButtonsLockUnlock()
                         }
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            getInputField()?.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO
+                            getInputField().importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO
                         }
                     }
         }

@@ -38,13 +38,17 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/delete_your_account"
+            android:layout_margin="10dp"
+            android:backgroundTint="@color/secondary"
             tools:ignore="ButtonStyle" />
 
         <Button
             android:id="@+id/buttonChangePassword"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_margin="10dp"
             android:layout_weight="1"
+            android:backgroundTint="@color/secondary"
             android:text="@string/change_your_password"
             tools:ignore="ButtonStyle"/>
 

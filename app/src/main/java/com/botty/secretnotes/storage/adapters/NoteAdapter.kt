@@ -8,7 +8,7 @@ import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.botty.secretnotes.R
 import com.botty.secretnotes.databinding.NoteCardBinding
-import com.botty.secretnotes.storage.new_db.note.Note
+import com.botty.secretnotes.storage.db.note.Note
 import kotlinx.android.synthetic.main.note_card.view.*
 
 class NoteAdapter(val context: Context) : RecyclerView.Adapter<NoteAdapter.NoteHolder>() {

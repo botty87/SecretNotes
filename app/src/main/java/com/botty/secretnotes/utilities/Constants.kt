@@ -13,6 +13,8 @@ object Constants {
 
     const val NO_LAT_LON_VALUE: Double = 5000.0
 
+    const val NO_DATE_VALUE = 0L
+
     const val BACKGROUNDS_FOLDER = "backgrounds"
 
     const val USER_HAS_ACCOUNT_KEY = "user_has_account"

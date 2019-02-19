@@ -1,4 +1,4 @@
-package com.botty.secretnotes.storage.new_db.category
+package com.botty.secretnotes.storage.db.category
 
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.MutableLiveData

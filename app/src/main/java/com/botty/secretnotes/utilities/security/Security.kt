@@ -1,6 +1,6 @@
 package com.botty.secretnotes.utilities.security
 
-import com.botty.secretnotes.storage.new_db.note.Note
+import com.botty.secretnotes.storage.db.note.Note
 import com.botty.secretnotes.utilities.logException
 import com.goterl.lazycode.lazysodium.LazySodiumAndroid
 import com.goterl.lazycode.lazysodium.SodiumAndroid

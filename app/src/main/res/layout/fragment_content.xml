@@ -6,13 +6,14 @@
     <data>
         <variable
             name="note"
-            type="com.botty.secretnotes.storage.new_db.note.Note" />
+            type="com.botty.secretnotes.storage.db.note.Note" />
     </data>
 
     <androidx.core.widget.NestedScrollView
         android:id="@+id/scrollViewTextContent"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:fillViewport="true"
         android:scrollbars="none"
         android:paddingTop="10dp"
         android:paddingBottom="20dp"
@@ -21,7 +22,7 @@
         <EditText
             android:id="@+id/editTextContent"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_marginLeft="@dimen/activity_horizontal_margin"
             android:layout_marginRight="@dimen/activity_horizontal_margin"
             android:gravity="top"

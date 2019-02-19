@@ -1,8 +1,8 @@
-package com.botty.secretnotes.storage.new_db.note
+package com.botty.secretnotes.storage.db.note
 
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.MutableLiveData
-import com.botty.secretnotes.storage.new_db.category.Category
+import com.botty.secretnotes.storage.db.category.Category
 import com.botty.secretnotes.utilities.logException
 import com.google.firebase.firestore.ListenerRegistration
 import io.objectbox.query.Query

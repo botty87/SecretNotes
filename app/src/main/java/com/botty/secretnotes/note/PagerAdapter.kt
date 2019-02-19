@@ -11,18 +11,20 @@ class PagerAdapter(fm: FragmentManager, private val context: Context): FragmentS
     override fun getItem(position: Int): Fragment {
         return when(position) {
             0 -> ContentFragment.newInstance()
-            else -> PositionFragment.newInstance()
+            1 -> PositionFragment.newInstance()
+            else -> ReminderFragment.newInstance()
         }
     }
 
     override fun getCount(): Int {
-        return 2
+        return 3
     }
 
     override fun getPageTitle(position: Int): CharSequence? {
         return when(position) {
             0 -> getString(R.string.text)
             1 -> context.getString(R.string.position)
+            2 -> context.getString(R.string.reminder)
             else -> super.getPageTitle(position)
         }
     }

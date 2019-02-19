@@ -10,7 +10,7 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.botty.secretnotes.R
-import com.botty.secretnotes.storage.new_db.category.Category
+import com.botty.secretnotes.storage.db.category.Category
 import com.botty.secretnotes.utilities.getColorStateListCompat
 import kotlinx.android.synthetic.main.category_item.view.*
 
@@ -43,7 +43,7 @@ class CategoryAdapter(val context: Context) : RecyclerView.Adapter<CategoryAdapt
         }
 
     private val selectedColor by lazy {
-        ContextCompat.getColor(context, R.color.accent)
+        ContextCompat.getColor(context, R.color.secondary)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CategoryHolder {
@@ -59,7 +59,7 @@ class CategoryAdapter(val context: Context) : RecyclerView.Adapter<CategoryAdapt
         fun setColors(isSelected: Boolean, textView: TextView) {
             if(isSelected) {
                 textView.setTextColor(Color.WHITE)
-                textView.backgroundTintList = context.getColorStateListCompat(R.color.accent)
+                textView.backgroundTintList = context.getColorStateListCompat(R.color.secondary)
                 selectedPosition = holder.adapterPosition
             }
             else {

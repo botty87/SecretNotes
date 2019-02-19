@@ -10,8 +10,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.afollestad.materialdialogs.input.input
 import com.botty.secretnotes.R
 import com.botty.secretnotes.storage.adapters.CategoryAdapter
-import com.botty.secretnotes.storage.new_db.category.Category
-import com.botty.secretnotes.storage.new_db.category.CategoryViewModel
+import com.botty.secretnotes.storage.db.category.Category
+import com.botty.secretnotes.storage.db.category.CategoryViewModel
 import com.botty.secretnotes.storage.storage_extensions.deleteCategory
 import com.botty.secretnotes.storage.storage_extensions.getCategories
 import com.botty.secretnotes.storage.storage_extensions.saveCategory

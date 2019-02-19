@@ -4,10 +4,10 @@ import android.app.Activity
 import com.botty.secretnotes.MainActivity
 import com.botty.secretnotes.R
 import com.botty.secretnotes.settings.SettingsActivity
-import com.botty.secretnotes.storage.new_db.category.Category
-import com.botty.secretnotes.storage.new_db.note.Note
-import com.botty.secretnotes.storage.new_db.note.NoteNonce
-import com.botty.secretnotes.storage.new_db.note.Note_
+import com.botty.secretnotes.storage.db.category.Category
+import com.botty.secretnotes.storage.db.note.Note
+import com.botty.secretnotes.storage.db.note.NoteNonce
+import com.botty.secretnotes.storage.db.note.Note_
 import com.botty.secretnotes.utilities.await
 import com.botty.secretnotes.utilities.getDialog
 import com.botty.secretnotes.utilities.logException
@@ -62,6 +62,8 @@ suspend fun MainActivity.moveDBToFirebase(): Boolean {
         val categories = getCategoriesBox().all
         val notesCol = getNotesCollection()
 
+        val notesObjIdFireId = mutableListOf<Pair<Long, String>>()
+
         if(categories.isNotEmpty()) {
             val categoriesCol = getCategoriesCollection()
             categories.forEach {category ->
@@ -73,6 +75,7 @@ suspend fun MainActivity.moveDBToFirebase(): Boolean {
                     val noteDoc = notesCol.document()
                     note.firestoreCatId = category.firestoreId
                     firestoreBatch.set(noteDoc, Note.getFirestoreMap(note))
+                    notesObjIdFireId.add(note.id to noteDoc.id)
                 }
             }
         }
@@ -82,10 +85,23 @@ suspend fun MainActivity.moveDBToFirebase(): Boolean {
         }.forEach {note ->
             val noteDoc = notesCol.document()
             firestoreBatch.set(noteDoc, Note.getFirestoreMap(note))
+            notesObjIdFireId.add(note.id to noteDoc.id)
+        }
+
+        //Migrate the reminders
+        val noteReminderBox = getNoteReminderBox()
+        noteReminderBox.all.forEach { noteReminder ->
+            notesObjIdFireId.firstOrNull { noteObjIdFireId ->
+                noteReminder.noteObjBoxId == noteObjIdFireId.first
+            }?.run {
+                noteReminder.noteObjBoxId = null
+                noteReminder.noteFirestoreId = this.second
+                noteReminderBox.put(noteReminder)
+            }
         }
 
         firestoreBatch.commit().addOnCompleteListener {
-            deleteAllBoxStore()
+            deleteAllBoxStore(false)
         }
     }
 
@@ -116,7 +132,7 @@ suspend fun MainActivity.moveDBToFirebase(): Boolean {
                     }
                 }
                 else {
-                    deleteAllBoxStore()
+                    deleteAllBoxStore(true)
                 }
             }
         }
@@ -183,10 +199,10 @@ private suspend fun Activity.moveDBLocally(removeNotes: Boolean, deleteUser: Boo
 
     suspend fun saveDBLocally(categories: Pair<List<Category>, List<DocumentReference>>,
                               notes: Pair<List<Note>, List<DocumentReference>>) :
-            //First categories, second notes
+            //First categories, second notes RETURN TYPE
             Pair< List<DocumentReference>, List<DocumentReference> >{
         withContext(NonCancellable) {
-            deleteAllBoxStore()
+            deleteAllBoxStore(false)
 
             val categoriesBox = getCategoriesBox()
             categories.first.forEach {category ->
@@ -203,53 +219,63 @@ private suspend fun Activity.moveDBLocally(removeNotes: Boolean, deleteUser: Boo
             }.run {
                 getNotesBox().put(this)
             }
+
+            //Check the reminders
+            val noteReminderBox = getNoteReminderBox()
+            noteReminderBox.all.forEach { noteReminder ->
+                notes.first.firstOrNull { note ->
+                    note.firestoreId == noteReminder.noteFirestoreId
+                }?.run {
+                    noteReminder.noteFirestoreId = null
+                    noteReminder.noteObjBoxId = this.id
+                    noteReminderBox.put(noteReminder)
+                }
+            }
         }
         return categories.second to notes.second
     }
 
-    val categoriesNotesRef =
-    try {
-        saveDBLocally(downloadCategories(), downloadNotes())
+    suspend fun cleanAndFinish(categoriesNotesRef: Pair< List<DocumentReference>, List<DocumentReference>>): Boolean {
+        return withContext(NonCancellable) {
+            try {
+                if (deleteUser) {
+                    FirebaseAuth.getInstance().currentUser?.delete()?.await()
+                } else {
+                    AuthUI.getInstance().signOut(this@moveDBLocally).await()
+                }
+            }
+            catch (e: Exception) {
+                toastError(e.localizedMessage)
+                logException(e)
+                deleteAllBoxStore(false)
+                return@withContext false
+            }
+
+            FirebaseAuth.getInstance().signInAnonymously().await()
+
+            if(removeNotes) {
+                val firestoreBatch = getFirestoreWriteBatch()
+                categoriesNotesRef.first.forEach {docRef ->
+                    firestoreBatch.delete(docRef)
+                }
+                categoriesNotesRef.second.forEach {docRef ->
+                    firestoreBatch.delete(docRef)
+                }
+
+                firestoreBatch.commit()
+            }
+            true
+        }
     }
-    catch (e: Exception) {
+
+    return try {
+        val categoriesNotesRef = saveDBLocally(downloadCategories(), downloadNotes())
+        cleanAndFinish(categoriesNotesRef)
+    } catch (e: Exception) {
         if(e !is CancellationException) {
             toastError(e.localizedMessage)
             logException(e)
         }
-        return false
+        false
     }
-
-    var isOk = true
-    withContext(NonCancellable) {
-        try {
-            if (deleteUser) {
-                FirebaseAuth.getInstance().currentUser?.delete()?.await()
-            } else {
-                AuthUI.getInstance().signOut(this@moveDBLocally).await()
-            }
-        }
-        catch (e: Exception) {
-            toastError(e.localizedMessage)
-            logException(e)
-            isOk = false
-            deleteAllBoxStore()
-            return@withContext
-        }
-
-        FirebaseAuth.getInstance().signInAnonymously().await()
-
-        if(removeNotes) {
-            val firestoreBatch = getFirestoreWriteBatch()
-            categoriesNotesRef.first.forEach {docRef ->
-                firestoreBatch.delete(docRef)
-            }
-            categoriesNotesRef.second.forEach {docRef ->
-                firestoreBatch.delete(docRef)
-            }
-
-            firestoreBatch.commit()
-        }
-    }
-    return isOk
 }
-

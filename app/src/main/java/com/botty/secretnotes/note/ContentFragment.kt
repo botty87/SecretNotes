@@ -14,6 +14,7 @@ import com.botty.secretnotes.utilities.*
 import com.danimahardhika.cafebar.CafeBar
 import com.danimahardhika.cafebar.CafeBarCallback
 import kotlinx.android.synthetic.main.activity_note.*
+
 import kotlinx.android.synthetic.main.fragment_content.*
 import org.jetbrains.anko.browse
 import org.jetbrains.anko.email

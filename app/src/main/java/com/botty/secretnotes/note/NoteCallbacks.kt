@@ -1,6 +1,6 @@
 package com.botty.secretnotes.note
 
-import com.botty.secretnotes.storage.new_db.note.Note
+import com.botty.secretnotes.storage.db.note.Note
 
 interface NoteCallbacks {
 

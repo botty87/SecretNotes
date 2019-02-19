@@ -1,4 +1,4 @@
-package com.botty.secretnotes.storage.new_db.note
+package com.botty.secretnotes.storage.db.note
 
 import com.google.firebase.firestore.GeoPoint
 import com.squareup.moshi.JsonAdapter

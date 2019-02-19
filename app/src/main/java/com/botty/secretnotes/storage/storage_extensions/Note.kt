@@ -1,16 +1,16 @@
 package com.botty.secretnotes.storage.storage_extensions
 
-import android.app.Activity
 import com.botty.secretnotes.MainActivity
 import com.botty.secretnotes.storage.AppPreferences
-import com.botty.secretnotes.storage.new_db.category.Category
-import com.botty.secretnotes.storage.new_db.note.*
+import com.botty.secretnotes.storage.db.category.Category
+import com.botty.secretnotes.storage.db.note.*
+import com.botty.secretnotes.storage.jobs.NoteReminderJob
 import com.google.firebase.firestore.Query
 import io.objectbox.kotlin.query
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.util.*
 
-fun Activity.saveNote(note: Note, updateTime: Boolean = true) {
+fun saveNote(note: Note, updateTime: Boolean = true) {
     if(updateTime) {
         note.lastModified = Date()
     }
@@ -22,6 +22,9 @@ fun Activity.saveNote(note: Note, updateTime: Boolean = true) {
         } ?: notesCol.document()
 
         noteDocument.set(Note.getFirestoreMap(note))
+
+        //Set ID for storing the reminder
+        note.firestoreId = noteDocument.id
     }
     else {
         note.nonceArray?.run {
@@ -31,9 +34,14 @@ fun Activity.saveNote(note: Note, updateTime: Boolean = true) {
                 note.nonce.add(NoteNonce(pos.toByte(), value))
             }
         }
-        getNotesBox().put(note)
+        getNotesBox().put(note).let {id ->
+            //Set ID for storing the reminder
+            note.id = id
+        }
         cleanNotesNonce()
     }
+
+    NoteReminderJob.setNoteReminder(note)
 }
 
 @ExperimentalCoroutinesApi
@@ -105,8 +113,7 @@ fun MainActivity.getNotes(category: Category?, noteViewModel: NoteViewModel, sea
     }
 }
 
-@ExperimentalCoroutinesApi
-fun MainActivity.deleteNote(note: Note) {
+fun deleteNote(note: Note) {
     if(AppPreferences.userHasAccount) {
         note.firestoreId?.run {
             getNotesCollection().document(this).delete()

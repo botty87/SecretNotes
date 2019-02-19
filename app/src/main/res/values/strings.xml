@@ -143,4 +143,12 @@
     <string name="search_place">Search\nplace</string>
     <string name="note_position_now_is">Your note position is now in:</string>
     <string name="map_long_press_marker">Long press on the map to put a marker and save a position.</string>
+
+    <string name="reminder">Reminder</string>
+    <string name="enable_reminder">Enable reminder</string>
+    <string name="reminder_enabled">THE REMINDER IS ENABLED!</string>
+    <string name="reminder_not_enabled">THE REMINDER IS NOT ENABLED!</string>
+    <string name="select_valid_date_reminder">Select a valid date before!</string>
+    <string name="reminder_before_now">Your reminder is before now!</string>
+    <string name="note_reminder">Note reminder!</string>
 </resources>

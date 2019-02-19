@@ -1,11 +1,12 @@
-package com.botty.secretnotes.storage.new_db.note
+package com.botty.secretnotes.storage.db.note
 
 import android.annotation.SuppressLint
 import android.os.Parcel
 import android.os.Parcelable
 import androidx.databinding.BaseObservable
 import androidx.databinding.Bindable
-import com.botty.secretnotes.storage.new_db.category.Category
+import com.botty.secretnotes.storage.db.category.Category
+import com.botty.secretnotes.storage.db.noteReminder.NoteReminderDelegate
 import com.botty.secretnotes.utilities.Constants
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
@@ -64,6 +65,9 @@ class Note() : Parcelable, BaseObservable() {
     @Convert(converter = GeoPointConverter::class, dbType = String::class)
     var position: GeoPoint? = null
 
+    @delegate:kotlin.jvm.Transient
+    var reminder: Date? by NoteReminderDelegate()
+
     constructor(parcel: Parcel) : this() {
         id = parcel.readLong()
         firestoreId = parcel.readString()
@@ -84,24 +88,31 @@ class Note() : Parcelable, BaseObservable() {
             nonceArray = ByteArray(nonceArraySize)
             parcel.readByteArray(nonceArray)
         }
+
+        val reminderLong = parcel.readLong()
+        if(reminderLong != Constants.NO_DATE_VALUE) {
+            reminder = Date(reminderLong)
+        }
     }
 
+    //Useful for objectbox
     constructor(id: Long, title: String, content: String,
-                passwordHash: String?, lastModified: Date?, categoryId: Long) : this() {
+                passwordHash: String?, lastModified: Date?, categoryId: Long, position: GeoPoint?) : this() {
         this.id = id
         this.title = title
         this.content = content
         this.passwordHash = passwordHash
         this.lastModified = lastModified
         this.category.targetId = categoryId
+        this.position = position
     }
 
-    private constructor(title: String, content: String, passwordHash: String?, lastModified: Long?): this() {
+    /*private constructor(title: String, content: String, passwordHash: String?, lastModified: Long?): this() {
         this.lastModified = lastModified?.run { Date(this) }
         this.title = title
         this.content = content
         this.passwordHash = passwordHash
-    }
+    }*/
 
     fun hasPassword(): Boolean {
         return passwordHash?.isNotBlank() ?: false
@@ -143,6 +154,9 @@ class Note() : Parcelable, BaseObservable() {
             parcel.writeInt(size)
             parcel.writeByteArray(this)
         } ?: parcel.writeInt(0)
+
+        val reminderLong = reminder?.time ?: Constants.NO_DATE_VALUE
+        parcel.writeLong(reminderLong)
     }
 
     override fun describeContents(): Int {
@@ -159,7 +173,8 @@ class Note() : Parcelable, BaseObservable() {
             other.title == this.title &&
             other.content == this.content &&
             other.position == this.position &&
-            other.lastModified?.equals(this.lastModified) ?: false
+            other.lastModified?.equals(this.lastModified) ?: false &&
+            other.reminder?.equals(this.reminder) ?: false
         }
         else {
             false
@@ -178,6 +193,7 @@ class Note() : Parcelable, BaseObservable() {
         result = 31 * result + (firestoreCatId?.hashCode() ?: 0)
         result = 31 * result + (nonce.hashCode())
         result = 31 * result + (position?.hashCode() ?: 0)
+        result = 31 * result + (reminder?.hashCode() ?: 0)
         return result
     }
 

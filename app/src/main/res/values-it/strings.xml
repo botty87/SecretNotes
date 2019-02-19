@@ -138,4 +138,11 @@
     <string name="note_position_removed">Posizione della nota rimossa!</string>
     <string name="note_position_now_is">La tua posizione della nota ora è in:</string>
     <string name="map_long_press_marker">Fai un click prolungato sulla mappa per inserire un marker in quella posizione.</string>
+    <string name="reminder">Promemoria</string>
+    <string name="enable_reminder">Abilita promemoria</string>
+    <string name="reminder_enabled">PROMEMORIA ABILITATO!</string>
+    <string name="reminder_not_enabled">PROMEMORIA NON ABILITATO!</string>
+    <string name="select_valid_date_reminder">Seleziona una data valida!</string>
+    <string name="reminder_before_now">Il tuo promemoria è nel passato!</string>
+    <string name="note_reminder">Promemoria nota!</string>
 </resources>

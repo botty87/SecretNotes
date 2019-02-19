@@ -2,6 +2,6 @@
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@android:color/white" android:state_checked="false" android:state_focused="true"/>
     <item android:drawable="@android:color/white" android:state_checked="false" android:state_focused="false"/>
-    <item android:drawable="@color/accent" android:state_checked="true" android:state_focused="true"/>
-    <item android:drawable="@color/accent" android:state_checked="true" android:state_focused="false"/>
+    <item android:drawable="@color/secondary" android:state_checked="true" android:state_focused="true"/>
+    <item android:drawable="@color/secondary" android:state_checked="true" android:state_focused="false"/>
 </selector>

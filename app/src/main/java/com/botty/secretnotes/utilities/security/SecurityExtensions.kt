@@ -72,7 +72,7 @@ fun Activity.askMasterPassword(onSuccess: (() -> Unit)? = null, onDenied: (() ->
                         }
                     }
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        getInputField()?.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO
+                        getInputField().importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO
                     }
                 }
     }

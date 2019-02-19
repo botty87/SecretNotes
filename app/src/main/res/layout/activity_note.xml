@@ -7,7 +7,7 @@
     <data>
         <variable
             name="note"
-            type="com.botty.secretnotes.storage.new_db.note.Note" />
+            type="com.botty.secretnotes.storage.db.note.Note" />
     </data>
 
     <androidx.coordinatorlayout.widget.CoordinatorLayout
@@ -62,8 +62,8 @@
                 android:layout_marginTop="5dp"
                 custom:tabMode="fixed"
                 custom:tabTextColor="@color/primary"
-                custom:tabSelectedTextColor="@color/accent"
-                custom:ddIndicatorColor="@color/accent"/>
+                custom:tabSelectedTextColor="@color/secondary"
+                custom:ddIndicatorColor="@color/secondary_variant"/>
 
             <!-- custom:tabSelectedTextColor="@color/selectedTab"
                 custom:ddIndicatorColor="@color/selectedTab" -->

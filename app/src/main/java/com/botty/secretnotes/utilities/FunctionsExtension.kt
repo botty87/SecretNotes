@@ -6,7 +6,9 @@ import android.content.Intent
 import android.content.res.ColorStateList
 import android.location.Location
 import android.net.Uri
+import android.os.Build
 import android.widget.ImageView
+import android.widget.TimePicker
 import android.widget.Toast
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat
@@ -29,7 +31,11 @@ import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.tasks.Task
 import com.google.firebase.firestore.GeoPoint
 import com.google.firebase.storage.FirebaseStorage
+import com.prolificinteractive.materialcalendarview.CalendarDay
 import es.dmoral.toasty.Toasty
+import org.joda.time.LocalDate
+import org.joda.time.LocalDateTime
+import java.util.*
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
@@ -160,13 +166,6 @@ fun Activity.showCafeBar(contentRes: Int, coordLayout: CoordinatorLayout? = null
     }
 }
 
-fun NoteFragmentCallbacks.showCafeBar(contentRes: Int, coordLayout: CoordinatorLayout? = null, duration: Int? = null,
-                         action: Pair<Int, CafeBarCallback>? = null ) {
-    activity?.run {
-        showCafeBar(contentRes, coordLayout, duration, action)
-    }
-}
-
 fun Activity.getMyApplication(): MyApplication {
     return (application as MyApplication)
 }
@@ -192,6 +191,37 @@ fun LatLng.getGeoPoint(): GeoPoint {
 
 fun MarkerOptions.addToMap(googleMap: GoogleMap): Marker {
     return googleMap.addMarker(this)
+}
+
+fun Date.getCalendarDay(): CalendarDay {
+    LocalDate.fromDateFields(this).run {
+        return CalendarDay.from(year, monthOfYear, dayOfMonth)
+    }
+}
+
+fun TimePicker.setFromDate(date: Date) {
+    val dateTime = LocalDateTime.fromDateFields(date)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        hour = dateTime.hourOfDay
+        minute = dateTime.minuteOfHour
+    }
+    else {
+        currentHour = dateTime.hourOfDay
+        currentMinute = dateTime.millisOfDay
+    }
+}
+
+fun TimePicker.getHourAndMinute(): Pair<Int, Int> {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        Pair (hour, minute)
+    }
+    else {
+        Pair (currentHour, currentMinute)
+    }
+}
+
+fun Date.getLocalDateTime(): LocalDateTime {
+    return LocalDateTime.fromDateFields(this)
 }
 
 suspend fun <T> Task<T>.await(): T = suspendCoroutine { continuation ->

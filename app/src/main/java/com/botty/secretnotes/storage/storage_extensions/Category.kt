@@ -3,11 +3,11 @@ package com.botty.secretnotes.storage.storage_extensions
 import androidx.lifecycle.Observer
 import com.botty.secretnotes.R
 import com.botty.secretnotes.storage.AppPreferences
-import com.botty.secretnotes.storage.new_db.category.Category
-import com.botty.secretnotes.storage.new_db.category.CategoryLiveData
-import com.botty.secretnotes.storage.new_db.category.CategoryViewModel
-import com.botty.secretnotes.storage.new_db.category.Category_
-import com.botty.secretnotes.storage.new_db.note.Note
+import com.botty.secretnotes.storage.db.category.Category
+import com.botty.secretnotes.storage.db.category.CategoryLiveData
+import com.botty.secretnotes.storage.db.category.CategoryViewModel
+import com.botty.secretnotes.storage.db.category.Category_
+import com.botty.secretnotes.storage.db.note.Note
 import com.botty.secretnotes.utilities.activites.BottomSheetCategoriesActivity
 import com.botty.secretnotes.utilities.await
 import com.botty.secretnotes.utilities.logException

@@ -1,15 +1,19 @@
 package com.botty.secretnotes.utilities
 
 import android.text.Spannable
-import android.text.method.LinkMovementMethod
+import android.text.method.ArrowKeyMovementMethod
 import android.text.style.URLSpan
 import android.view.MotionEvent
 import android.widget.EditText
 import android.widget.TextView
 
-private class MyLinkMovementMethod(val onLinkClick: (url: String, urlType: UrlType) -> Unit): LinkMovementMethod() {
+private class MyLinkMovementMethod(val onLinkClick: (url: String, urlType: UrlType) -> Unit): ArrowKeyMovementMethod() {
 
     override fun onTouchEvent(widget: TextView?, buffer: Spannable?, event: MotionEvent?): Boolean {
+        if(buffer?.isEmpty() != false) {
+            return super.onTouchEvent(widget, buffer, event)
+        }
+
         // If action has finished
         if (event?.action == MotionEvent.ACTION_UP) {
             // Locate the area that was pressed
@@ -25,7 +29,7 @@ private class MyLinkMovementMethod(val onLinkClick: (url: String, urlType: UrlTy
                 val off = layout.getOffsetForHorizontal(line, x)
 
                 // Find the URL that was pressed
-                val link = buffer?.getSpans(off, off, URLSpan::class.java)
+                val link = buffer.getSpans(off, off, URLSpan::class.java)
 
                 // If we've found a URL
                 if (link?.isNotEmpty() == true) {

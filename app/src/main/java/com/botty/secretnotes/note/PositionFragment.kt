@@ -74,7 +74,6 @@ class PositionFragment : NoteFragmentCallbacks() {
                 updateUserLocationOnMap()
             }
             setNotePosition()
-            setSearchLocation()
 
             googleMap.setOnMapLongClickListener {newPosition ->
                 noteCallbacks?.getNote()?.position = newPosition.getGeoPoint()
@@ -82,31 +81,66 @@ class PositionFragment : NoteFragmentCallbacks() {
                 toastSuccess(R.string.end_note_position_drag)
             }
 
-            buttonMinusZoom.setOnClickListener {
-                googleMap.animateCamera(CameraUpdateFactory.zoomOut())
-            }
-
-            buttonPlusZoom.setOnClickListener {
-                googleMap.animateCamera(CameraUpdateFactory.zoomIn())
-            }
+            setMapButtons()
         }
     }
 
-    private fun setSearchLocation() {
-        buttonSearchPlace.setOnClickListener {
-            context?.run {
-                if(!Places.isInitialized()) {
-                    Places.initialize(applicationContext, "AIzaSyCxHJcbSH_6pnXFEO9v7T2TZ2iUx2oH_oc")
+    private fun setMapButtons() {
+        fun setSearchLocation() {
+            buttonSearchPlace.setOnClickListener {
+                context?.run {
+                    if(!Places.isInitialized()) {
+                        Places.initialize(applicationContext, "AIzaSyCxHJcbSH_6pnXFEO9v7T2TZ2iUx2oH_oc")
+                    }
+
+                    val fields = Arrays.asList(Place.Field.NAME, Place.Field.LAT_LNG)
+
+                    Autocomplete.IntentBuilder(
+                            AutocompleteActivityMode.FULLSCREEN, fields)
+                            .build(this)
+                            .run {
+                                startActivityForResult(this, Constants.SEARCH_PLACE_ACTIVITY_REQ_CODE)
+                            }
                 }
+            }
+        }
 
-                val fields = Arrays.asList(Place.Field.NAME, Place.Field.LAT_LNG)
+        setSearchLocation()
 
-                Autocomplete.IntentBuilder(
-                        AutocompleteActivityMode.FULLSCREEN, fields)
-                        .build(this)
-                        .run {
-                            startActivityForResult(this, Constants.SEARCH_PLACE_ACTIVITY_REQ_CODE)
-                        }
+        buttonMinusZoom.setOnClickListener {
+            googleMap.animateCamera(CameraUpdateFactory.zoomOut())
+        }
+
+        buttonPlusZoom.setOnClickListener {
+            googleMap.animateCamera(CameraUpdateFactory.zoomIn())
+        }
+
+        buttonUserPosition.setOnClickListener {
+            googleMap.animateCamera(CameraUpdateFactory.newLatLng(userLocation.getLatLng()))
+            userMarker.showInfoWindow()
+        }
+
+        buttonNotePosition.setOnClickListener {
+            positionMarker?.run { googleMap.animateCamera(CameraUpdateFactory.newLatLng(position)) }
+            positionMarker?.showInfoWindow()
+        }
+
+        buttonRemoveNotePosition.setOnClickListener {
+            val oldPosition = noteCallbacks?.getNote()?.position
+
+            noteCallbacks?.getNote()?.position = null
+            positionMarker?.remove()
+            positionMarker = null
+            buttonRemoveNotePosition.visibility = View.GONE
+            buttonNotePosition.visibility = View.GONE
+
+            activity?.run {
+                showCafeBar(R.string.note_position_removed, noteCoordLayout, CafeBar.Duration.LONG,
+                        R.string.undo to CafeBarCallback {
+                            noteCallbacks?.getNote()?.position = oldPosition
+                            setNotePosition()
+                            it.dismiss()
+                        })
             }
         }
     }
@@ -170,10 +204,6 @@ class PositionFragment : NoteFragmentCallbacks() {
 
         if(buttonUserPosition.visibility != View.VISIBLE) {
             buttonUserPosition.visibility = View.VISIBLE
-            buttonUserPosition.setOnClickListener {
-                googleMap.animateCamera(CameraUpdateFactory.newLatLng(userLocation.getLatLng()))
-                userMarker.showInfoWindow()
-            }
         }
 
         userLocation.getLatLng().let {userLatLng ->
@@ -243,28 +273,8 @@ class PositionFragment : NoteFragmentCallbacks() {
             }
 
             buttonNotePosition.visibility = View.VISIBLE
-            buttonNotePosition.setOnClickListener {
-                positionMarker?.run { googleMap.animateCamera(CameraUpdateFactory.newLatLng(position)) }
-                positionMarker?.showInfoWindow()
-            }
 
             buttonRemoveNotePosition.visibility = View.VISIBLE
-            buttonRemoveNotePosition.setOnClickListener {
-                val oldPosition = noteCallbacks?.getNote()?.position
-
-                noteCallbacks?.getNote()?.position = null
-                positionMarker?.remove()
-                positionMarker = null
-                buttonRemoveNotePosition.visibility = View.GONE
-                buttonNotePosition.visibility = View.GONE
-
-                showCafeBar(R.string.note_position_removed, noteCoordLayout, CafeBar.Duration.LONG,
-                        R.string.undo to CafeBarCallback {
-                            noteCallbacks?.getNote()?.position = oldPosition
-                            setNotePosition()
-                            it.dismiss()
-                        })
-            }
         }
     }
 
