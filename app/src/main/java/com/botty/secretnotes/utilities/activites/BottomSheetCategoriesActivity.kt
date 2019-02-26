@@ -26,9 +26,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import es.dmoral.toasty.Toasty
 import kotlinx.android.synthetic.main.bottom_sheet_main_content.*
 import kotlinx.android.synthetic.main.bottom_sheet_main_title.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.*
 import org.jetbrains.anko.dip
 
 //Used in main and in note activities. Is useful for the category shared functions
@@ -63,11 +61,11 @@ abstract class BottomSheetCategoriesActivity: OnPauseTrackActivity(), CoroutineS
         super.onSaveInstanceState(outState)
     }
 
-    protected fun setBottomSheetCategories(bottomSheetCategories: View, bottomSheetPeek: View,
+    protected suspend fun setBottomSheetCategories(bottomSheetCategories: View, bottomSheetPeek: View,
                                            recyclerViewCategories: RecyclerView, imageViewShowHide: ImageView,
                                            viewCategoriesBackground: View,
                                            fabAction: FloatingActionButton? = null,
-                                           isEditMode: Boolean = true) {
+                                           isEditMode: Boolean = true) = withContext(Dispatchers.Default) {
 
         fun setAnimation() {
             bottomSheet = BottomSheetBehavior.from(bottomSheetCategories)
@@ -115,9 +113,8 @@ abstract class BottomSheetCategoriesActivity: OnPauseTrackActivity(), CoroutineS
             })
         }
 
-        fun loadCategories() {
+        suspend fun loadCategories() = withContext(Dispatchers.Main) {
             recyclerViewCategories.run {
-                //setHasFixedSize(false)
                 layoutManager = FlexboxLayoutManager(this@BottomSheetCategoriesActivity)
                         .apply {
                             flexDirection = FlexDirection.ROW

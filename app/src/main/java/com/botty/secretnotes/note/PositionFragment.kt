@@ -13,8 +13,12 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProviders
 import com.botty.secretnotes.R
+import com.botty.secretnotes.note.data.NoteActivityViewModel
 import com.botty.secretnotes.storage.AppPreferences
+import com.botty.secretnotes.storage.db.note.Note
 import com.botty.secretnotes.utilities.*
 import com.danimahardhika.cafebar.CafeBar
 import com.danimahardhika.cafebar.CafeBarCallback
@@ -28,14 +32,20 @@ import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.widget.Autocomplete
 import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
+import com.google.firebase.firestore.GeoPoint
 import kotlinx.android.synthetic.main.activity_note.*
 import kotlinx.android.synthetic.main.fragment_position.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 import permissions.dispatcher.*
 import java.util.*
 
 
+@ExperimentalCoroutinesApi
 @RuntimePermissions
-class PositionFragment : NoteFragmentCallbacks() {
+class PositionFragment : NoteFragmentCallbacks(), CoroutineScope by MainScope() {
 
     private lateinit var googleMap: GoogleMap
     private lateinit var userLocation: Location
@@ -57,31 +67,50 @@ class PositionFragment : NoteFragmentCallbacks() {
 
     private var isCameraSet = false
 
+    private lateinit var viewModel: NoteActivityViewModel
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
+        activity?.run {
+            viewModel = ViewModelProviders.of(this).get(NoteActivityViewModel::class.java)
+        }
         return inflater.inflate(R.layout.fragment_position, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        MapsInitializer.initialize(activity)
-        mapNotePosition.onCreate(savedInstanceState)
-        mapNotePosition.getMapAsync {
-            googleMap = it
-            googleMap.uiSettings.isMapToolbarEnabled = false
-            if(userVisibleHint) {
-                updateUserLocationOnMap()
+        fun initializeMapFragment() {
+            //This is necessary to avoid a false null, because of async activity note read
+            lateinit var noteObserver: Observer<Note>
+            noteObserver = Observer { note ->
+                note.position?.run {
+                    setNotePosition(this)
+                }
+                viewModel.note.removeObserver(noteObserver)
             }
-            setNotePosition()
-
+            viewModel.note.observe(this@PositionFragment, noteObserver)
             googleMap.setOnMapLongClickListener {newPosition ->
-                noteCallbacks?.getNote()?.position = newPosition.getGeoPoint()
+                viewModel.note.value?.position = newPosition.getGeoPoint()
                 setNotePosition()
                 toastSuccess(R.string.end_note_position_drag)
             }
 
             setMapButtons()
+        }
+
+        MapsInitializer.initialize(activity)
+        mapNotePosition.onCreate(savedInstanceState)
+        mapNotePosition.getMapAsync {
+            launch {
+                googleMap = it
+                googleMap.uiSettings.isMapToolbarEnabled = false
+                if(userVisibleHint) {
+                    updateUserLocationOnMap()
+                }
+
+                initializeMapFragment()
+            }
         }
     }
 
@@ -126,9 +155,9 @@ class PositionFragment : NoteFragmentCallbacks() {
         }
 
         buttonRemoveNotePosition.setOnClickListener {
-            val oldPosition = noteCallbacks?.getNote()?.position
+            val oldPosition = viewModel.note.value?.position
 
-            noteCallbacks?.getNote()?.position = null
+            viewModel.note.value?.position = null
             positionMarker?.remove()
             positionMarker = null
             buttonRemoveNotePosition.visibility = View.GONE
@@ -137,7 +166,7 @@ class PositionFragment : NoteFragmentCallbacks() {
             activity?.run {
                 showCafeBar(R.string.note_position_removed, noteCoordLayout, CafeBar.Duration.LONG,
                         R.string.undo to CafeBarCallback {
-                            noteCallbacks?.getNote()?.position = oldPosition
+                            viewModel.note.value?.position = oldPosition
                             setNotePosition()
                             it.dismiss()
                         })
@@ -150,7 +179,7 @@ class PositionFragment : NoteFragmentCallbacks() {
         if(requestCode == Constants.SEARCH_PLACE_ACTIVITY_REQ_CODE && resultCode == RESULT_OK) {
             data?.run {
                 val place = Autocomplete.getPlaceFromIntent(this)
-                noteCallbacks?.getNote()?.position = place.latLng?.getGeoPoint()
+                viewModel.note.value?.position = place.latLng?.getGeoPoint()
                 place.name?.run {
                     val message = getString(R.string.note_position_now_is) + ": " + this
                     toastSuccess(message)
@@ -211,7 +240,7 @@ class PositionFragment : NoteFragmentCallbacks() {
                 userMarker.position = userLatLng
             }
             else {
-                if(noteCallbacks?.getNote()?.position == null) {
+                if(viewModel.note.value?.position == null) {
                     if(isCameraSet) {
                         googleMap.animateCamera(CameraUpdateFactory.newLatLng(userLatLng))
                     }
@@ -229,53 +258,59 @@ class PositionFragment : NoteFragmentCallbacks() {
     }
 
     private fun setNotePosition() {
-        noteCallbacks?.getNote()?.position?.run {
-            if(positionMarker != null) {
-                getLatLng().run {
-                    positionMarker!!.position = this
-                    googleMap.animateCamera(CameraUpdateFactory.newLatLng(this))
-                }
-            }
-            else {
-                getLatLng().let { latLng ->
-                    positionMarker = MarkerOptions()
-                            .position(latLng)
-                            .title(getString(R.string.your_saved_position))
-                            .icon(BitmapDescriptorFactory.fromResource(R.drawable.note_position_marker))
-                            .draggable(true)
-                            .addToMap(googleMap)
-
-                    if(isCameraSet) {
-                        googleMap.animateCamera(CameraUpdateFactory.newLatLng(latLng))
-                    }
-                    else {
-                        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18f))
-                        isCameraSet = true
-                    }
-                }
-
-                googleMap.setOnMarkerDragListener(object: GoogleMap.OnMarkerDragListener {
-                    override fun onMarkerDragStart(p0: Marker?) {
-                        toastInfo(R.string.start_note_position_drag)
-                    }
-
-                    override fun onMarkerDragEnd(marker: Marker?) {
-                        toastSuccess(R.string.end_note_position_drag)
-                        marker?.position?.run {
-                            noteCallbacks?.getNote()?.position = getGeoPoint()
-                            googleMap.animateCamera(CameraUpdateFactory.newLatLng(this))
-                        }
-                    }
-
-                    override fun onMarkerDrag(p0: Marker?) {}
-
-                })
-            }
-
-            buttonNotePosition.visibility = View.VISIBLE
-
-            buttonRemoveNotePosition.visibility = View.VISIBLE
+        viewModel.note.value?.position?.run {
+            setNotePosition(this)
         }
+    }
+
+    private fun setNotePosition(position: GeoPoint) {
+        //TODO TEST!!!!
+        if(positionMarker != null) {
+            position.getLatLng().run {
+                positionMarker!!.position = this
+                googleMap.animateCamera(CameraUpdateFactory.newLatLng(this))
+            }
+        }
+        else {
+            position.getLatLng().let { latLng ->
+                positionMarker = MarkerOptions()
+                        .position(latLng)
+                        .title(getString(R.string.your_saved_position))
+                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.note_position_marker))
+                        .draggable(true)
+                        .addToMap(googleMap)
+
+                if(isCameraSet) {
+                    googleMap.animateCamera(CameraUpdateFactory.newLatLng(latLng))
+                }
+                else {
+                    googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18f))
+                    isCameraSet = true
+                }
+            }
+
+            googleMap.setOnMarkerDragListener(object: GoogleMap.OnMarkerDragListener {
+                override fun onMarkerDragStart(p0: Marker?) {
+                    toastInfo(R.string.start_note_position_drag)
+                }
+
+                override fun onMarkerDragEnd(marker: Marker?) {
+                    toastSuccess(R.string.end_note_position_drag)
+
+                    marker?.position?.run {
+                        viewModel.note.value?.position = getGeoPoint()
+                        googleMap.animateCamera(CameraUpdateFactory.newLatLng(this))
+                    }
+                }
+
+                override fun onMarkerDrag(p0: Marker?) {}
+
+            })
+        }
+
+        buttonNotePosition.visibility = View.VISIBLE
+
+        buttonRemoveNotePosition.visibility = View.VISIBLE
     }
 
     @OnShowRationale(Manifest.permission.ACCESS_FINE_LOCATION)

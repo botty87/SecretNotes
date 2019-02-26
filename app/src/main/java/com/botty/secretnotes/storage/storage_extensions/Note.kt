@@ -48,8 +48,6 @@ fun saveNote(note: Note, updateTime: Boolean = true) {
 fun MainActivity.getNotes(category: Category?, noteViewModel: NoteViewModel, searchText: String? = null) {
     noteViewModel.noteLiveData?.clearAll(this)
 
-    //val settingsContainer = SettingsContainer.getSettingsContainer(this)
-
     if(AppPreferences.userHasAccount) {
         var query = if(AppPreferences.alphabetSort) {
             if(AppPreferences.ascendingSort) {
@@ -73,7 +71,7 @@ fun MainActivity.getNotes(category: Category?, noteViewModel: NoteViewModel, sea
         }
 
         noteViewModel.noteLiveData = NoteLiveData(query, category, searchText).apply {
-            observe(this@getNotes, androidx.lifecycle.Observer(noteViewModel::onNotesChanged))
+            observe(this@getNotes, androidx.lifecycle.Observer(this@getNotes::onNotesChanged))
         }
     }
     else {
@@ -108,7 +106,7 @@ fun MainActivity.getNotes(category: Category?, noteViewModel: NoteViewModel, sea
         }
 
         noteViewModel.noteLiveData = NoteLiveData(query, category, searchText).apply {
-            observe(this@getNotes, androidx.lifecycle.Observer(noteViewModel::onNotesChanged))
+            observe(this@getNotes, androidx.lifecycle.Observer(this@getNotes::onNotesChanged))
         }
     }
 }

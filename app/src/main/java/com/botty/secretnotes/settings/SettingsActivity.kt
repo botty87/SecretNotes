@@ -43,7 +43,9 @@ class SettingsActivity : OnPauseTrackActivity(), CoroutineScope by MainScope() {
         settingsBinding = DataBindingUtil.setContentView(this, R.layout.activity_settings)
         settingsBinding.settings = SettingsContainer()
 
-        setBackground(imageViewBackground, R.drawable.settings_background)
+        launch {
+            setBackground(imageViewBackground, R.drawable.settings_background)
+        }
 
         //If we have an user account set the view stub
         setUserAccountStub()

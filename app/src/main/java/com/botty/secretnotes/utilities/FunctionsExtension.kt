@@ -33,6 +33,8 @@ import com.google.firebase.firestore.GeoPoint
 import com.google.firebase.storage.FirebaseStorage
 import com.prolificinteractive.materialcalendarview.CalendarDay
 import es.dmoral.toasty.Toasty
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.joda.time.LocalDate
 import org.joda.time.LocalDateTime
 import java.util.*
@@ -58,19 +60,23 @@ fun Context.getColorStateListCompat(colorRes: Int): ColorStateList? {
     return ContextCompat.getColorStateList(this, colorRes)
 }
 
-fun Activity.setBackground(imageView: ImageView, imageRes: Int? = null) {
+//By default is executed in bg thread. Run Glide in the main
+suspend fun Activity.setBackground(imageView: ImageView, imageRes: Int? = null)
+        = withContext(Dispatchers.Default) {
     try {
         val imageID = Random.nextInt(0, 10)
         val image = "$imageID.webp"
         val imageRef = imageRes ?:
         FirebaseStorage.getInstance().reference.child(Constants.BACKGROUNDS_FOLDER).child(image)
-        GlideApp.with(this)
-                .load(imageRef)
-                .centerCrop()
-                .transition(DrawableTransitionOptions.withCrossFade())
-                .fallback(R.drawable.default_background)
-                .error(R.drawable.default_background)
-                .into(imageView)
+        withContext(Dispatchers.Main) {
+            GlideApp.with(this@setBackground)
+                    .load(imageRef)
+                    .centerCrop()
+                    .transition(DrawableTransitionOptions.withCrossFade())
+                    .fallback(R.drawable.default_background)
+                    .error(R.drawable.default_background)
+                    .into(imageView)
+        }
     } catch (e: Exception) {
         logException(e)
     }

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name" translatable="false">Secret Notes</string>
+    <string name="app_name" translatable="false">Secret Notes Develop</string>
 
     <string name="facebook_application_id" translatable="false">2239254482952897</string>
     <string name="facebook_login_protocol_scheme" translatable="false">fb2239254482952897</string>

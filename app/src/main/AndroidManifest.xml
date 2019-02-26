@@ -24,12 +24,10 @@
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyCxHJcbSH_6pnXFEO9v7T2TZ2iUx2oH_oc"/>
-
+            android:value="AIzaSyCxHJcbSH_6pnXFEO9v7T2TZ2iUx2oH_oc" />
         <meta-data
             android:name="firebase_crashlytics_collection_enabled"
             android:value="${enableCrashReporting}" />
-
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="@string/ad_mod_id" />

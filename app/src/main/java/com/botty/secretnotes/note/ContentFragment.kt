@@ -8,18 +8,21 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.databinding.DataBindingUtil
+import androidx.lifecycle.ViewModelProviders
 import com.botty.secretnotes.R
 import com.botty.secretnotes.databinding.FragmentContentBinding
+import com.botty.secretnotes.note.data.NoteActivityViewModel
 import com.botty.secretnotes.utilities.*
 import com.danimahardhika.cafebar.CafeBar
 import com.danimahardhika.cafebar.CafeBarCallback
 import kotlinx.android.synthetic.main.activity_note.*
-
 import kotlinx.android.synthetic.main.fragment_content.*
+import kotlinx.coroutines.*
 import org.jetbrains.anko.browse
 import org.jetbrains.anko.email
 
-class ContentFragment : NoteFragmentCallbacks() {
+@ExperimentalCoroutinesApi
+class ContentFragment : NoteFragmentCallbacks(), CoroutineScope by MainScope() {
 
     private lateinit var contentBinding: FragmentContentBinding
 
@@ -27,7 +30,10 @@ class ContentFragment : NoteFragmentCallbacks() {
                               savedInstanceState: Bundle?): View? {
 
         contentBinding = DataBindingUtil.inflate(layoutInflater, R.layout.fragment_content, container, false)
-        contentBinding.note = noteCallbacks?.getNote()
+        contentBinding.lifecycleOwner = this
+        activity?.run {
+            contentBinding.viewModel = ViewModelProviders.of(this).get(NoteActivityViewModel::class.java)
+        }
 
         return contentBinding.root
     }
@@ -35,38 +41,40 @@ class ContentFragment : NoteFragmentCallbacks() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        //Set the link management for the content
-        editTextContent.afterTextChanged {
-            Linkify.addLinks(it as Spannable, Linkify.ALL)
-        }
-
-        editTextContent.onLinkClicked {url, urlType ->
-            val textRes = when(urlType) {
-                UrlType.WEB -> R.string.snackbar_link_click
-                UrlType.EMAIL -> R.string.snackbar_email_click
-                else -> R.string.snackbar_phone_click
+        launch(Dispatchers.Default) {
+            //Set the link management for the content
+            editTextContent.afterTextChanged {
+                Linkify.addLinks(it as Spannable, Linkify.ALL)
             }
 
-            activity?.run {
-                showCafeBar(textRes, noteCoordLayout, duration = CafeBar.Duration.MEDIUM,
-                        action = R.string.open to CafeBarCallback { cafeBar ->
-                            when (urlType) {
-                                UrlType.WEB -> browse(url)
-                                UrlType.EMAIL ->
-                                    url.removePrefix("mailto:").run { email(this) }
-                                else -> openDialer(url)
-                            }
-                            cafeBar.dismiss()
-                        })
-            }
-        }
+            editTextContent.onLinkClicked {url, urlType ->
+                val textRes = when(urlType) {
+                    UrlType.WEB -> R.string.snackbar_link_click
+                    UrlType.EMAIL -> R.string.snackbar_email_click
+                    else -> R.string.snackbar_phone_click
+                }
 
-        if (noteCallbacks?.getIsButtonSaveEnabled() == true && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            scrollViewTextContent.setOnScrollChangeListener { v: View?, scrollX: Int, scrollY: Int, oldScrollX: Int, oldScrollY: Int ->
-                if (scrollY > oldScrollY) {
-                    noteCallbacks?.changeFabSaveVisibility(false)
-                } else {
-                    noteCallbacks?.changeFabSaveVisibility(true)
+                activity?.run {
+                    showCafeBar(textRes, noteCoordLayout, duration = CafeBar.Duration.MEDIUM,
+                            action = R.string.open to CafeBarCallback { cafeBar ->
+                                when (urlType) {
+                                    UrlType.WEB -> browse(url)
+                                    UrlType.EMAIL ->
+                                        url.removePrefix("mailto:").run { email(this) }
+                                    else -> openDialer(url)
+                                }
+                                cafeBar.dismiss()
+                            })
+                }
+            }
+
+            if (noteCallbacks?.isButtonSaveEnabled() == true && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                scrollViewTextContent.setOnScrollChangeListener { v: View?, scrollX: Int, scrollY: Int, oldScrollX: Int, oldScrollY: Int ->
+                    if (scrollY > oldScrollY) {
+                        noteCallbacks?.changeFabSaveVisibility(false)
+                    } else {
+                        noteCallbacks?.changeFabSaveVisibility(true)
+                    }
                 }
             }
         }

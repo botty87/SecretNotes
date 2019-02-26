@@ -5,8 +5,8 @@
 
     <data>
         <variable
-            name="note"
-            type="com.botty.secretnotes.storage.db.note.Note" />
+            name="viewModel"
+            type="com.botty.secretnotes.note.data.NoteActivityViewModel" />
     </data>
 
     <androidx.core.widget.NestedScrollView
@@ -28,7 +28,7 @@
             android:gravity="top"
             android:textColorHint="@android:color/darker_gray"
             android:inputType="textCapSentences|textMultiLine"
-            android:text="@={note.content}"
+            android:text="@={viewModel.note.content}"
             android:hint="@string/content"
             android:linksClickable="true"
             android:autoLink="all"

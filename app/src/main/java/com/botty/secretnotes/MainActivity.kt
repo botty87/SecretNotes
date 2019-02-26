@@ -11,7 +11,8 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.View.GONE
-import android.widget.Toast
+import androidx.lifecycle.ViewModelProviders
+import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
@@ -60,15 +61,8 @@ class MainActivity : BottomSheetCategoriesActivity() {
         }
     }
 
-    private val notesViewModel: NoteViewModel by lazy {
-        object : NoteViewModel() {
-            override fun onNotesChanged(notes: List<Note>) {
-                if (loaderView.visibility != View.GONE) {
-                    loaderView.visibility = GONE
-                }
-                noteAdapter.notes = notes
-            }
-        }
+    private val notesViewModel by lazy {
+        ViewModelProviders.of(this).get(NoteViewModel::class.java)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -102,9 +96,24 @@ class MainActivity : BottomSheetCategoriesActivity() {
         loadAd(adView)
 
         launch {
-            checkIfMigratePreferences()
-            isUserAccountOk()?.run {
-                runStandardStartup(uid)
+            val firebaseUser = withContext(Dispatchers.IO) {
+                checkIfMigratePreferences()
+                isUserAccountOk()
+            }
+
+            if(firebaseUser != null) {
+                runStandardStartup(firebaseUser.uid)
+            }
+            else {
+                getDialog()
+                        .title(R.string.welcome_title)
+                        .message(R.string.welcome_message)
+                        .positiveButton(R.string.lets_go)
+                        .show{
+                            onDismiss {
+                                startActivityForResult<LoginActivity>(Constants.LOGIN_ACTIVITY_REQ_CODE)
+                            }
+                        }
             }
         }
     }
@@ -112,15 +121,6 @@ class MainActivity : BottomSheetCategoriesActivity() {
     //Verify if it's the first run or if the user has a valid local profile, or a valide Firebase
     private suspend fun isUserAccountOk(): FirebaseUser? {
         if(AppPreferences.userAccountToSet) {
-            getDialog()
-                    .title(R.string.welcome_title)
-                    .message(R.string.welcome_message)
-                    .positiveButton(R.string.lets_go)
-                    .show{
-                        onDismiss {
-                            startActivityForResult<LoginActivity>(Constants.LOGIN_ACTIVITY_REQ_CODE)
-                        }
-                    }
             return null
         }
         else {
@@ -133,7 +133,6 @@ class MainActivity : BottomSheetCategoriesActivity() {
                     }
                     catch (e: Exception) {
                         logException(e)
-                        startActivityForResult<LoginActivity>(Constants.CHANGE_USER_ACCOUNT_ACTIVITY_REQ_CODE)
                         null
                     }
                 } else {
@@ -150,7 +149,6 @@ class MainActivity : BottomSheetCategoriesActivity() {
                         firebaseAuth.signInAnonymously().await().user
                     } catch (e: Exception) {
                         logException(e)
-                        Toasty.error(this, e.localizedMessage, Toast.LENGTH_LONG).show()
                         null
                     }
                 }
@@ -158,33 +156,38 @@ class MainActivity : BottomSheetCategoriesActivity() {
         }
     }
 
-    private fun runStandardStartup(uid: String) {
+    private suspend fun runStandardStartup(uid: String) {
 
-        fun getNotesAndCategories() {
+        suspend fun getNotesAndCategories() {
             loadNotes()
             setBottomSheetCategories(bottomSheetCategories, bottomSheetPeek,
                     recyclerViewCategories, imageViewShowHide, viewCategoriesBackground,
                     fabNewNote)
         }
 
-        //Return true if we can continue, false otherwise
+        //Return true if we can continue, false otherwise TODO test!
         fun verifyMasterPas(): Boolean {
             if(AppPreferences.masterPasToSet) {
-
                 var password: String? = null
                 getDialog()
                         .title(R.string.master_password_title)
                         .message(R.string.master_password_message)
                         .negativeButton(R.string.proceed_whitout_master_password) {
-                            AppPreferences.masterPasToSet = false
-                            getNotesAndCategories()
+                            launch {
+                                AppPreferences.masterPasToSet = false
+                                getNotesAndCategories()
+                            }
                         }
                         .positiveButton(R.string.set) {
-                            password?.let {password ->
-                                AppPreferences.masterPas = Security.getPasswordHash(password)
+                            launch {
+                                withContext(Dispatchers.IO) {
+                                    password?.let { password ->
+                                        AppPreferences.masterPas = Security.getPasswordHash(password)
+                                    }
+                                    AppPreferences.masterPasToSet = false
+                                }
+                                getNotesAndCategories()
                             }
-                            AppPreferences.masterPasToSet = false
-                            getNotesAndCategories()
                         }
                         .show {
                             setActionButtonEnabled(WhichButton.POSITIVE, false)
@@ -205,19 +208,43 @@ class MainActivity : BottomSheetCategoriesActivity() {
                 return if(AppPreferences.masterPas.isNullOrEmpty()) {
                     true
                 } else {
-                    askMasterPassword({ getNotesAndCategories() }, { finish() })
+                    askMasterPassword({
+                        launch { getNotesAndCategories() }
+                    }, { finish() })
                     false
                 }
             }
         }
 
-        setCrashlyticsUserId(uid)
+        withContext(Dispatchers.Default) {
+            setCrashlyticsUserId(uid)
+            setFabNewNote()
+        }
+
         setBackground(imageViewBackground)
-        setFabNewNote()
 
         if(verifyMasterPas()) {
             getNotesAndCategories()
         }
+    }
+
+    private fun loadNotes() {
+        recyclerViewNotes.run {
+            setHasFixedSize(true)
+            itemAnimator = DefaultItemAnimator()
+            setNoteAdapterLayout()
+            adapter = noteAdapter
+        }
+
+        getNotes(categoryAdapter.selectedCategory, notesViewModel)
+    }
+
+    //Called inside getNotes function every time we have an update
+    internal fun onNotesChanged(notes: List<Note>) {
+        if (loaderView.visibility != View.GONE) {
+            loaderView.visibility = GONE
+        }
+        noteAdapter.submitNotes(notes)
     }
 
     private fun setFabNewNote() {
@@ -245,16 +272,6 @@ class MainActivity : BottomSheetCategoriesActivity() {
                 super.onScrolled(recyclerView, dx, dy)
             }
         })
-    }
-
-    private fun loadNotes() {
-        recyclerViewNotes.run {
-            setHasFixedSize(true)
-            setNoteAdapterLayout()
-            adapter = noteAdapter
-        }
-
-        getNotes(categoryAdapter.selectedCategory, notesViewModel)
     }
 
     private fun setNoteAdapterLayout() {
@@ -322,10 +339,11 @@ class MainActivity : BottomSheetCategoriesActivity() {
         fun onLoginRequest() {
             if(resultCode == Activity.RESULT_OK) {
                 FirebaseAuth.getInstance().currentUser?.run {
-                    AppPreferences.userHasAccount = data?.getBooleanExtra(Constants.USER_HAS_ACCOUNT_KEY, false) ?: false
-                    AppPreferences.userAccountToSet = false
-
-                    runStandardStartup(uid)
+                    launch {
+                        AppPreferences.userHasAccount = data?.getBooleanExtra(Constants.USER_HAS_ACCOUNT_KEY, false) ?: false
+                        AppPreferences.userAccountToSet = false
+                        runStandardStartup(uid)
+                    }
                 } ?: finish()
             }
             else {

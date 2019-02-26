@@ -11,12 +11,14 @@ import android.view.View
 import android.view.View.GONE
 import android.view.View.VISIBLE
 import androidx.databinding.DataBindingUtil
+import androidx.lifecycle.ViewModelProviders
 import com.afollestad.materialdialogs.WhichButton
 import com.afollestad.materialdialogs.actions.setActionButtonEnabled
 import com.afollestad.materialdialogs.input.getInputField
 import com.afollestad.materialdialogs.input.input
 import com.botty.secretnotes.R
 import com.botty.secretnotes.databinding.ActivityNoteBinding
+import com.botty.secretnotes.note.data.NoteActivityViewModel
 import com.botty.secretnotes.storage.AppPreferences
 import com.botty.secretnotes.storage.db.category.Category
 import com.botty.secretnotes.storage.db.note.Note
@@ -31,7 +33,10 @@ import es.dmoral.toasty.Toasty
 import kotlinx.android.synthetic.main.activity_note.*
 import kotlinx.android.synthetic.main.bottom_sheet_main_content.*
 import kotlinx.android.synthetic.main.bottom_sheet_main_title.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import net.yslibrary.android.keyboardvisibilityevent.KeyboardVisibilityEvent
 import java.util.*
 
@@ -39,8 +44,9 @@ import java.util.*
 class NoteActivity : BottomSheetCategoriesActivity(), NoteCallbacks {
 
     private lateinit var noteBinding: ActivityNoteBinding
-
-    private var password: String? = null
+    private val viewModel by lazy {
+        noteBinding.viewModel!!
+    }
 
     private lateinit var buttonUnlock: MenuItem
     private lateinit var buttonLock: MenuItem
@@ -49,19 +55,14 @@ class NoteActivity : BottomSheetCategoriesActivity(), NoteCallbacks {
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
-        fun setViewPager() {
-            viewPager.adapter = PagerAdapter(supportFragmentManager, this)
-            tabLayout.setupWithViewPager(viewPager)
-        }
-
-        fun setButtonSave() {
+        suspend fun setButtonSave() = withContext(Dispatchers.Default) {
             if(isButtonSaveEnabled) {
                 buttonSave.setOnClickListener {
-                    if(noteBinding.note?.isValid() == true) {
+                    if(viewModel.note.value?.isValid() == true) {
                         saveNote()
                     }
                     else {
-                        Toasty.error(this, getString(R.string.fill_the_note)).show()
+                        Toasty.error(this@NoteActivity, getString(R.string.fill_the_note)).show()
                     }
                 }
             }
@@ -70,8 +71,8 @@ class NoteActivity : BottomSheetCategoriesActivity(), NoteCallbacks {
             }
         }
 
-        fun setKeyboardListener() {
-            KeyboardVisibilityEvent.setEventListener(this) { isOpen ->
+        suspend fun setKeyboardListener() = withContext(Dispatchers.Default) {
+            KeyboardVisibilityEvent.setEventListener(this@NoteActivity) { isOpen ->
                 if(isOpen) {
                     if(!editTextTitle.hasFocus()) {
                         tabLayout.visibility = GONE
@@ -89,36 +90,61 @@ class NoteActivity : BottomSheetCategoriesActivity(), NoteCallbacks {
             }
         }
 
+        fun setViewPager() {
+            viewPager.adapter = PagerAdapter(supportFragmentManager, this@NoteActivity)
+            tabLayout.setupWithViewPager(viewPager)
+        }
+
         super.onCreate(savedInstanceState)
         noteBinding = DataBindingUtil.setContentView(this, R.layout.activity_note)
+        noteBinding.lifecycleOwner = this
+        noteBinding.viewModel = ViewModelProviders.of(this).get(NoteActivityViewModel::class.java)
 
-        readNote(savedInstanceState, intent)
-        setSelectedCategory(intent)
+        launch {
+            val fab = if(isButtonSaveEnabled) buttonSave else null
+            readNote(savedInstanceState, intent)
+            setSelectedCategory(intent)
 
-        loadAd(adView)
+            setButtonSave()
+            setKeyboardListener()
 
-        val fab = if(isButtonSaveEnabled) buttonSave else null
+            setBottomSheetCategories(bottomSheetCategories, bottomSheetPeek, recyclerViewCategories,
+                    imageViewShowHide, viewCategoriesBackground, fab, false)
 
-        setBottomSheetCategories(bottomSheetCategories, bottomSheetPeek, recyclerViewCategories,
-                imageViewShowHide, viewCategoriesBackground, fab, false)
-
-        setButtonSave()
-        setViewPager()
-        setKeyboardListener()
-
-        onBackPressedPlus = this::onBackPressedPlus
-    }
-
-    override fun onNewIntent(intent: Intent?) {
-        super.onNewIntent(intent)
-        intent?.run {
-            readNote(null, this)
-            setSelectedCategory(this)
+            onBackPressedPlus = this@NoteActivity::onBackPressedPlus
         }
+
+        setViewPager()
+        loadAd(adView)
     }
 
-    private fun setSelectedCategory(intent: Intent) {
-        noteBinding.note?.let {note ->
+    private suspend fun readNote(savedInstanceState: Bundle?, intent: Intent) = withContext(Dispatchers.Default) {
+        var note: Note? = savedInstanceState?.getParcelable(Note.NOTE_TAG)
+        var password = savedInstanceState?.getString(Note.NOTE_PAS)
+
+        if(note == null) {
+            note = intent.getParcelableExtra(Note.NOTE_TAG)
+            if(note == null) {
+                finish()
+                return@withContext
+            }
+            if(password.isNullOrBlank()) {
+                password = intent.getStringExtra(Note.NOTE_PAS)
+            }
+
+            note.let {note ->
+                password?.let {password ->
+                    note.content = Security.decryptNote(password, note)
+                }
+            }
+        }
+
+        viewModel.note.postValue(note)
+        viewModel.password.postValue(password)
+    }
+
+    private suspend fun setSelectedCategory(intent: Intent) = withContext(Dispatchers.Default) {
+        viewModel.note.value?.let {note ->
 
             val tempSelectedCategory = Category().also {tempSelCat ->
                 tempSelCat.firestoreId = note.firestoreCatId
@@ -132,7 +158,7 @@ class NoteActivity : BottomSheetCategoriesActivity(), NoteCallbacks {
                     if(isNotBlank()) {
                         textViewCategoryTitle.text = this
                     }
-                    return
+                    return@withContext
                 }
 
                 /*
@@ -140,12 +166,11 @@ class NoteActivity : BottomSheetCategoriesActivity(), NoteCallbacks {
                 with category, but we do not have the category name. In this case we need to retrieve
                 the db.
                */
-
                 categoryAdapter.categories.find {category ->
                     category.matchCategory(tempSelectedCategory)
                 }?.run {
                     textViewCategoryTitle.text = name
-                    return
+                    return@withContext
                 }
 
                 categoryAdapter.onCategoriesChanged = {categories ->
@@ -160,49 +185,40 @@ class NoteActivity : BottomSheetCategoriesActivity(), NoteCallbacks {
         }
     }
 
-    private fun readNote(savedInstanceState: Bundle?, intent: Intent) {
-        noteBinding.note = savedInstanceState?.getParcelable(Note.NOTE_TAG)
-        password = savedInstanceState?.getString(Note.NOTE_PAS)
-
-        if(noteBinding.note == null) {
-            noteBinding.note = intent.getParcelableExtra(Note.NOTE_TAG)
-            if(noteBinding.note == null) {
-                finish()
-            }
-            if(password.isNullOrBlank()) {
-                password = intent.getStringExtra(Note.NOTE_PAS)
-            }
-
-            noteBinding.note!!.let {note ->
-                password?.let {password ->
-                    note.content = Security.decryptNote(password, note)
-                }
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        intent?.run {
+            launch {
+                readNote(null, this@run)
+                setSelectedCategory(this@run)
             }
         }
     }
 
     private fun saveNote() {
-        if(noteBinding.note?.reminder?.before(Date()) == true) {
+        if(viewModel.note.value?.reminder?.before(Date()) == true) {
             toastError(getString(R.string.reminder_before_now))
             return
         }
-        noteBinding.note?.let {note ->
-            if(password != null && password?.isNotBlank() == true) {
-                Security.encryptNote(password!!, note.content).run {
-                    note.content = first
-                    note.nonceArray = second
+        viewModel.note.value?.let {note ->
+            viewModel.password.value.let {password ->
+                if(password != null && password.isNotBlank()) {
+                    Security.encryptNote(password, note.content).run {
+                        note.content = first
+                        note.nonceArray = second
+                    }
+                    note.passwordHash = Security.getPasswordHash(password)
                 }
-                note.passwordHash = Security.getPasswordHash(password!!)
-            }
-            else {
-                note.passwordHash = null
-                note.nonceArray = null
+                else {
+                    note.passwordHash = null
+                    note.nonceArray = null
+                }
             }
             saveNote(note)
         }
         toastSuccess(R.string.saved)
         val resultIntent = Intent()
-        resultIntent.putExtra(Note.NOTE_TAG, noteBinding.note)
+        resultIntent.putExtra(Note.NOTE_TAG, viewModel.note.value)
         setResult(Activity.RESULT_OK, resultIntent)
         finish()
     }
@@ -210,14 +226,14 @@ class NoteActivity : BottomSheetCategoriesActivity(), NoteCallbacks {
     private fun onBackPressedPlus() {
         if(isButtonSaveEnabled) {
             Intent().run {
-                putExtra(Note.NOTE_DISCARDED, noteBinding.note)
+                putExtra(Note.NOTE_DISCARDED, viewModel.note.value)
                 putExtra(Category.NAME_KEY, categoryAdapter.selectedCategory?.name)
                 setResult(Activity.RESULT_CANCELED, this)
             }
             finish()
         }
         else {
-            if(noteBinding.note?.isValid() == true) {
+            if(viewModel.note.value?.isValid() == true) {
                 saveNote()
             }
             else {
@@ -248,11 +264,15 @@ class NoteActivity : BottomSheetCategoriesActivity(), NoteCallbacks {
 
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
         fun lockNote() {
+            lateinit var newPassword: String
+
             getDialog()
                     .title(R.string.lock_note)
                     .message(R.string.lock_note_message)
                     .negativeButton(R.string.cancel)
-                    .positiveButton(R.string.set)
+                    .positiveButton(R.string.set) {
+                        viewModel.password.value = newPassword
+                    }
                     .show {
                         setActionButtonEnabled(WhichButton.POSITIVE, false)
 
@@ -260,8 +280,9 @@ class NoteActivity : BottomSheetCategoriesActivity(), NoteCallbacks {
                         input(inputType = inputType, waitForPositiveButton = false) { dialog, passwordChars ->
                             val isValid = passwordChars.length >= 6
                             dialog.setActionButtonEnabled(WhichButton.POSITIVE, isValid)
-                            password = if (isValid) passwordChars.toString() else null
-                            setButtonsLockUnlock()
+                            if (isValid) {
+                                newPassword = passwordChars.toString()
+                            }
                         }
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                             getInputField().importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO
@@ -275,8 +296,7 @@ class NoteActivity : BottomSheetCategoriesActivity(), NoteCallbacks {
                     .message(R.string.unlock_note_message)
                     .negativeButton (R.string.no)
                     .positiveButton (R.string.yes) {
-                        password = null
-                        setButtonsLockUnlock()
+                        viewModel.password.value = null
                     }
                     .show()
         }
@@ -288,19 +308,19 @@ class NoteActivity : BottomSheetCategoriesActivity(), NoteCallbacks {
                     .negativeButton(R.string.no)
                     .positiveButton(R.string.yes) {
                         //Verify if there was an original password
-                        password = intent.getStringExtra(Note.NOTE_PAS)
-                        if(password != null && password?.isNotBlank() == true) {
-                            noteBinding.note?.run {
-                                Security.encryptNote(password!!, content).run {
+                        val password = intent.getStringExtra(Note.NOTE_PAS)
+                        if(password != null && password.isNotBlank()) {
+                            viewModel.note.value?.run {
+                                Security.encryptNote(password, content).run {
                                     content = first
                                     nonceArray = second
                                 }
-                                passwordHash = Security.getPasswordHash(password!!)
+                                passwordHash = Security.getPasswordHash(password)
                             }
                         }
 
                         val resultIntent = Intent()
-                        resultIntent.putExtra(Note.NOTE_TAG, noteBinding.note)
+                        resultIntent.putExtra(Note.NOTE_TAG, viewModel.note.value)
                         resultIntent.putExtra(Note.NOTE_TO_DELETE, true)
                         setResult(Activity.RESULT_OK, resultIntent)
                         finish()
@@ -334,27 +354,31 @@ class NoteActivity : BottomSheetCategoriesActivity(), NoteCallbacks {
     }
 
     private fun setButtonsLockUnlock() {
-        val locked = password?.isNotBlank() ?: false
-        buttonLock.isVisible = !locked
-        buttonUnlock.isVisible = locked
+        viewModel.password.observe(this, androidx.lifecycle.Observer { password ->
+            val locked = password?.isNotBlank() ?: false
+            buttonLock.isVisible = !locked
+            buttonUnlock.isVisible = locked
+        })
     }
 
     override fun onCategoryClicked(category: Category?) {
         super.onCategoryClicked(category)
         if(AppPreferences.userHasAccount) {
-            noteBinding.note?.firestoreCatId = category?.firestoreId
+            viewModel.note.value?.firestoreCatId = category?.firestoreId
         }
         else {
-            noteBinding.note?.category?.targetId = category?.id ?: Category.NO_CATEGORY_ID
+            viewModel.note.value?.category?.targetId = category?.id ?: Category.NO_CATEGORY_ID
         }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putParcelable(Note.NOTE_TAG, noteBinding.note)
-        outState.putString(Note.NOTE_PAS, password)
+        outState.putParcelable(Note.NOTE_TAG, viewModel.note.value)
+        outState.putString(Note.NOTE_PAS, viewModel.password.value)
         super.onSaveInstanceState(outState)
     }
 
+    /*
+    TODO test if ok!!!
     override fun onDestroy() {
         super.onDestroy()
         noteBinding.note = null
@@ -362,9 +386,9 @@ class NoteActivity : BottomSheetCategoriesActivity(), NoteCallbacks {
 
     override fun getNote(): Note {
         return noteBinding.note!!
-    }
+    }*/
 
-    override fun getIsButtonSaveEnabled(): Boolean {
+    override fun isButtonSaveEnabled(): Boolean {
         return isButtonSaveEnabled
     }
 
